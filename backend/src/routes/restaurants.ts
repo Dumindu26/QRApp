@@ -15,6 +15,7 @@ export type { FeatureKey, RestaurantFeatures } from '../lib/features';
 
 const toRestaurant = (row: Record<string, unknown>) => ({
   id: row.id, name: row.name, slug: row.slug, active: row.active === true, createdAt: row.created_at,
+  city: (row.city as string | null) ?? null,
   serviceChargePct: Number(row.service_charge_pct ?? 0), taxPct: Number(row.tax_pct ?? 0),
   serviceChargeName: (row.service_charge_name as string | null) ?? 'Service Charge',
   taxName:           (row.tax_name           as string | null) ?? 'Tax',
@@ -166,7 +167,7 @@ router.get('/:id/users', authenticate, requireRole('super_admin'), async (req: A
 });
 
 router.post('/', authenticate, requireRole('super_admin'), async (req, res) => {
-  const { name, adminUsername, adminPassword, adminName } = req.body as { name: string; adminUsername: string; adminPassword: string; adminName?: string; };
+  const { name, adminUsername, adminPassword, adminName, city } = req.body as { name: string; adminUsername: string; adminPassword: string; adminName?: string; city?: string; };
   if (!name?.trim() || !adminUsername?.trim() || !adminPassword) { res.status(400).json({ error: 'name, adminUsername and adminPassword are required' }); return; }
   const baseSlug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   let slug = baseSlug; let suffix = 2;
@@ -176,19 +177,22 @@ router.post('/', authenticate, requireRole('super_admin'), async (req, res) => {
     slug = `${baseSlug}-${suffix++}`;
   }
   const restaurantId = uuid(); const now = new Date().toISOString();
-  await pool.query('INSERT INTO restaurants (id,name,slug,active,created_at) VALUES ($1,$2,$3,TRUE,$4)', [restaurantId, name.trim(), slug, now]);
+  const cityVal = city?.trim() || null;
+  await pool.query('INSERT INTO restaurants (id,name,slug,active,created_at,city) VALUES ($1,$2,$3,TRUE,$4,$5)', [restaurantId, name.trim(), slug, now, cityVal]);
   const hash = await bcrypt.hash(adminPassword, 10);
   await pool.query(`INSERT INTO users (id,restaurant_id,username,password_hash,name,role) VALUES ($1,$2,$3,$4,$5,'admin')`,
     [uuid(), restaurantId, adminUsername.trim(), hash, adminName?.trim() || adminUsername.trim()]);
-  res.status(201).json({ id: restaurantId, name: name.trim(), slug, active: true, createdAt: now });
+  res.status(201).json({ id: restaurantId, name: name.trim(), slug, active: true, createdAt: now, city: cityVal });
 });
 
 router.put('/:id', authenticate, async (req: AuthRequest, res) => {
   const { id } = req.params;
   if (req.user!.role !== 'super_admin' && req.user!.restaurantId !== id) { res.status(403).json({ error: 'Access denied' }); return; }
-  const { name } = req.body as { name?: string };
+  const { name, city } = req.body as { name?: string; city?: string };
   if (!name?.trim()) { res.status(400).json({ error: 'name is required' }); return; }
-  const result = await pool.query('UPDATE restaurants SET name = $1 WHERE id = $2', [name.trim(), id]);
+  const result = city !== undefined
+    ? await pool.query('UPDATE restaurants SET name = $1, city = $2 WHERE id = $3', [name.trim(), city.trim() || null, id])
+    : await pool.query('UPDATE restaurants SET name = $1 WHERE id = $2', [name.trim(), id]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
   const updated = await pool.query('SELECT * FROM restaurants WHERE id = $1', [id]);
   res.json(toRestaurant(updated.rows[0] as Record<string, unknown>));
@@ -455,6 +459,41 @@ router.patch('/:id/active', authenticate, requireRole('super_admin'), async (req
   const result = await pool.query('UPDATE restaurants SET active = $1 WHERE id = $2', [active, id]);
   if ((result.rowCount ?? 0) === 0) { res.status(404).json({ error: 'Not found' }); return; }
   res.json({ id, active });
+});
+
+// Permanently delete a restaurant and ALL of its data. Super-admin only.
+// Cascades generically across every table that has a restaurant_id column,
+// plus order_items (linked via orders), inside a single transaction.
+router.delete('/:id', authenticate, requireRole('super_admin'), async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  const client = await pool.connect();
+  try {
+    const exists = await client.query('SELECT 1 FROM restaurants WHERE id = $1', [id]);
+    if (!exists.rows.length) { res.status(404).json({ error: 'Not found' }); return; }
+
+    await client.query('BEGIN');
+    // order_items has no restaurant_id — clear it via its parent orders first.
+    await client.query(
+      `DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE restaurant_id = $1)`,
+      [id],
+    );
+    // Every other table that scopes rows by restaurant_id.
+    const tables = await client.query<{ table_name: string }>(
+      `SELECT table_name FROM information_schema.columns
+        WHERE column_name = 'restaurant_id' AND table_schema = 'public' AND table_name <> 'restaurants'`,
+    );
+    for (const { table_name } of tables.rows) {
+      await client.query(`DELETE FROM "${table_name}" WHERE restaurant_id = $1`, [id]);
+    }
+    await client.query('DELETE FROM restaurants WHERE id = $1', [id]);
+    await client.query('COMMIT');
+    res.json({ id, deleted: true });
+  } catch {
+    await client.query('ROLLBACK').catch(() => {});
+    res.status(500).json({ error: 'Failed to delete restaurant' });
+  } finally {
+    client.release();
+  }
 });
 
 router.post('/impersonate/:userId', authenticate, requireRole('super_admin'), async (_req, res) => {

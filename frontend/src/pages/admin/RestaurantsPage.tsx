@@ -1,24 +1,18 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus, Pencil, Check, X, Store, LogOut,
-  ChevronDown, ChevronUp, LogIn, Users, Sliders, CreditCard, ScrollText, MessageSquarePlus,
+  Plus, Pencil, Check, X, Store, LogOut, CheckCircle2, CircleSlash,
+  ChevronDown, ChevronUp, LogIn, Users, SlidersHorizontal, Trash2, Search,
+  MessageSquarePlus, ScrollText, CreditCard, Loader2,
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import type { RestaurantFeatures } from '../../context/AuthContext';
-import { subscriptionService, daysUntil, type PlanCode, type SubscriptionStatus } from '../../services/subscriptionService';
-import { featureRequestService } from '../../services/featureRequestService';
+import { subscriptionService, type PlanCode, type SubscriptionStatus } from '../../services/subscriptionService';
 
 const PLAN_CODES: PlanCode[] = ['free', 'starter', 'pro'];
 const STATUSES: SubscriptionStatus[] = ['trialing', 'active', 'past_due', 'canceled'];
-const SUB_BADGE: Record<string, string> = {
-  trialing: 'bg-blue-100 text-blue-700',
-  active:   'bg-green-100 text-green-700',
-  past_due: 'bg-amber-100 text-amber-700',
-  canceled: 'bg-red-100 text-red-600',
-};
 
 const FEATURE_LABELS: { key: keyof RestaurantFeatures; label: string; description: string }[] = [
   { key: 'combos',          label: 'Combo Deals',       description: 'Bundle menu items into combo packages' },
@@ -34,619 +28,464 @@ const FEATURE_LABELS: { key: keyof RestaurantFeatures; label: string; descriptio
   { key: 'staffPerformance',label: 'Staff Performance', description: 'Staff productivity and tips tracking' },
   { key: 'roster',          label: 'Roster',            description: 'Staff shift scheduling' },
 ];
-
 const ALL_FEATURES_ON: RestaurantFeatures = {
   combos: true, menuSchedules: true, roomCharges: true, promoCodes: true,
   reports: true, roster: true, shiftReport: true, staffPerformance: true,
   tableStatus: true, readyDisplay: true, kitchenDisplay: true, bills: true,
 };
 
-interface Restaurant {
-  id: string;
-  name: string;
-  slug: string;
-  active: boolean;
-  createdAt: string;
-  features?: RestaurantFeatures;
-  plan?: PlanCode;
-  subscriptionStatus?: SubscriptionStatus;
-  trialEndsAt?: string | null;
-  currentPeriodEnd?: string | null;
-}
-
-interface RestaurantUser {
-  id: string;
-  username: string;
-  name: string;
-  role: 'admin' | 'kitchen';
-}
-
-interface CreatePayload {
-  name: string;
-  adminUsername: string;
-  adminPassword: string;
-  adminName: string;
-}
-
-const ROLE_BADGE: Record<string, string> = {
-  admin:   'bg-orange-100 text-orange-700',
-  kitchen: 'bg-green-100  text-green-700',
+const PLAN_BADGE: Record<string, string> = {
+  free:    'bg-gray-100 text-gray-600',
+  starter: 'bg-blue-100 text-blue-700',
+  pro:     'bg-emerald-100 text-emerald-700',
 };
+const ROLE_BADGE: Record<string, string> = {
+  admin:   'bg-violet-100 text-violet-700',
+  manager: 'bg-blue-100 text-blue-700',
+  cashier: 'bg-amber-100 text-amber-700',
+  waiter:  'bg-emerald-100 text-emerald-700',
+  kitchen: 'bg-rose-100 text-rose-700',
+};
+
+interface Restaurant {
+  id: string; name: string; slug: string; active: boolean; createdAt: string;
+  city?: string | null; features?: RestaurantFeatures; plan?: PlanCode;
+  subscriptionStatus?: SubscriptionStatus; trialEndsAt?: string | null; currentPeriodEnd?: string | null;
+}
+interface RestaurantUser { id: string; username: string; name: string; role: string; }
+interface CreatePayload { name: string; adminUsername: string; adminPassword: string; adminName: string; city: string; }
+
+type PlanFilter = 'all' | PlanCode;
+type StatusFilter = 'all' | 'active' | 'inactive';
+
+function Switch({ on, onChange }: { on: boolean; onChange: () => void }) {
+  return (
+    <button onClick={onChange}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${on ? 'bg-green-500' : 'bg-gray-300'}`}
+      title={on ? 'Active — click to deactivate' : 'Inactive — click to activate'}>
+      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${on ? 'translate-x-6' : 'translate-x-1'}`} />
+    </button>
+  );
+}
 
 export function RestaurantsPage() {
   const navigate = useNavigate();
   const { logout } = useAuth();
 
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [loading, setLoading]         = useState(true);
-  const [openRequests, setOpenRequests] = useState(0);
-  const [showForm, setShowForm]       = useState(false);
-  const [editingId, setEditingId]     = useState<string | null>(null);
-  const [editName, setEditName]       = useState('');
+  const [loading, setLoading] = useState(true);
 
-  // expanded restaurant id → its users
-  const [expandedId, setExpandedId]   = useState<string | null>(null);
-  const [usersMap, setUsersMap]       = useState<Record<string, RestaurantUser[]>>({});
+  const [search, setSearch] = useState('');
+  const [planFilter, setPlanFilter] = useState<PlanFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
+  const [expandedId, setExpandedId] = useState<string | null>(null); // accounts panel
+  const [manageId, setManageId] = useState<string | null>(null);     // settings panel
+  const [usersMap, setUsersMap] = useState<Record<string, RestaurantUser[]>>({});
   const [usersLoading, setUsersLoading] = useState(false);
-  const [impersonating, setImpersonating] = useState<string | null>(null); // userId
+  const [impersonating, setImpersonating] = useState<string | null>(null);
 
-  // features panel
-  const [featuresOpenId, setFeaturesOpenId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editCity, setEditCity] = useState('');
   const [togglingFeature, setTogglingFeature] = useState<string | null>(null);
-  // billing panel
-  const [billingOpenId, setBillingOpenId] = useState<string | null>(null);
   const [billingDraft, setBillingDraft] = useState<{ plan: PlanCode; status: SubscriptionStatus; trialDays: string }>({ plan: 'pro', status: 'active', trialDays: '14' });
   const [savingBilling, setSavingBilling] = useState(false);
 
-  function openBilling(r: Restaurant) {
-    if (billingOpenId === r.id) { setBillingOpenId(null); return; }
-    setBillingDraft({
-      plan: r.plan ?? 'pro',
-      status: r.subscriptionStatus ?? 'active',
-      trialDays: '14',
-    });
-    setBillingOpenId(r.id);
-  }
+  const [deleteTarget, setDeleteTarget] = useState<Restaurant | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  async function saveBilling(r: Restaurant) {
-    setSavingBilling(true);
-    try {
-      await subscriptionService.adminSet(r.id, billingDraft.plan, billingDraft.status, parseInt(billingDraft.trialDays, 10) || undefined);
-      // Reflect changes locally (active follows trialing/active).
-      const active = billingDraft.status === 'trialing' || billingDraft.status === 'active';
-      setRestaurants((p) => p.map((x) => x.id === r.id ? { ...x, plan: billingDraft.plan, subscriptionStatus: billingDraft.status, active } : x));
-      toast.success('Subscription updated');
-      setBillingOpenId(null);
-    } catch {
-      toast.error('Failed to update subscription');
-    } finally {
-      setSavingBilling(false);
-    }
-  }
-
-  const [form, setForm] = useState<CreatePayload>({
-    name: '', adminUsername: '', adminPassword: '', adminName: '',
-  });
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState<CreatePayload>({ name: '', adminUsername: '', adminPassword: '', adminName: '', city: '' });
 
   const load = () =>
     axios.get<Restaurant[]>('/api/restaurants')
       .then((r) => setRestaurants(r.data))
       .catch(() => toast.error('Failed to load restaurants'))
       .finally(() => setLoading(false));
-
   useEffect(() => { load(); }, []);
-  useEffect(() => { featureRequestService.openCount().then(setOpenRequests).catch(() => {}); }, []);
 
-  // â”€â”€ Toggle active â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  async function toggleExpand(id: string) {
+    setManageId(null);
+    if (expandedId === id) { setExpandedId(null); return; }
+    setExpandedId(id);
+    if (usersMap[id]) return;
+    setUsersLoading(true);
+    try {
+      const res = await axios.get<RestaurantUser[]>(`/api/restaurants/${id}/users`);
+      setUsersMap((p) => ({ ...p, [id]: res.data }));
+    } catch { toast.error('Failed to load users'); }
+    finally { setUsersLoading(false); }
+  }
+
+  function openManage(r: Restaurant) {
+    setExpandedId(null);
+    if (manageId === r.id) { setManageId(null); return; }
+    setBillingDraft({ plan: r.plan ?? 'pro', status: r.subscriptionStatus ?? 'active', trialDays: '14' });
+    setManageId(r.id);
+  }
+
   async function toggleActive(r: Restaurant) {
     const next = !r.active;
     try {
       await axios.patch(`/api/restaurants/${r.id}/active`, { active: next });
       setRestaurants((p) => p.map((x) => x.id === r.id ? { ...x, active: next } : x));
       toast.success(`"${r.name}" ${next ? 'activated' : 'deactivated'}`);
-    } catch {
-      toast.error('Failed to update status');
-    }
+    } catch { toast.error('Failed to update status'); }
   }
 
-  // â”€â”€ Toggle feature flag â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function toggleFeature(r: Restaurant, key: keyof RestaurantFeatures) {
     const current = r.features ?? ALL_FEATURES_ON;
     const next = !current[key];
     setTogglingFeature(`${r.id}:${key}`);
     try {
-      const res = await axios.patch<{ features: RestaurantFeatures }>(
-        `/api/restaurants/${r.id}/features`, { [key]: next },
-      );
+      const res = await axios.patch<{ features: RestaurantFeatures }>(`/api/restaurants/${r.id}/features`, { [key]: next });
       setRestaurants((p) => p.map((x) => x.id === r.id ? { ...x, features: res.data.features } : x));
-    } catch {
-      toast.error('Failed to update feature');
-    } finally {
-      setTogglingFeature(null);
-    }
+    } catch { toast.error('Failed to update feature'); }
+    finally { setTogglingFeature(null); }
   }
 
-  // â”€â”€ Expand / load users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  async function toggleExpand(id: string) {
-    if (expandedId === id) { setExpandedId(null); return; }
-    setExpandedId(id);
-    if (usersMap[id]) return; // already loaded
-    setUsersLoading(true);
+  async function saveBilling(r: Restaurant) {
+    setSavingBilling(true);
     try {
-      const res = await axios.get<RestaurantUser[]>(`/api/restaurants/${id}/users`);
-      setUsersMap((p) => ({ ...p, [id]: res.data }));
-    } catch {
-      toast.error('Failed to load users');
-    } finally {
-      setUsersLoading(false);
-    }
+      await subscriptionService.adminSet(r.id, billingDraft.plan, billingDraft.status, parseInt(billingDraft.trialDays, 10) || undefined);
+      const active = billingDraft.status === 'trialing' || billingDraft.status === 'active';
+      setRestaurants((p) => p.map((x) => x.id === r.id ? { ...x, plan: billingDraft.plan, subscriptionStatus: billingDraft.status, active } : x));
+      toast.success('Subscription updated');
+    } catch { toast.error('Failed to update subscription'); }
+    finally { setSavingBilling(false); }
   }
 
-  // â”€â”€ Impersonate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  function startEdit(r: Restaurant) { setEditingId(r.id); setEditName(r.name); setEditCity(r.city ?? ''); }
+  async function saveEdit(id: string) {
+    if (!editName.trim()) return;
+    const city = editCity.trim();
+    try {
+      await axios.put(`/api/restaurants/${id}`, { name: editName.trim(), city });
+      setRestaurants((p) => p.map((r) => r.id === id ? { ...r, name: editName.trim(), city: city || null } : r));
+      setEditingId(null);
+      toast.success('Restaurant updated');
+    } catch { toast.error('Failed to update'); }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await axios.delete(`/api/restaurants/${deleteTarget.id}`);
+      setRestaurants((p) => p.filter((x) => x.id !== deleteTarget.id));
+      toast.success(`"${deleteTarget.name}" deleted`);
+      setDeleteTarget(null);
+    } catch { toast.error('Failed to delete restaurant'); }
+    finally { setDeleting(false); }
+  }
+
   async function loginAs(userId: string, username: string) {
     setImpersonating(userId);
     try {
-      const res = await axios.post<{ token: string; user: { role: string } }>(
-        `/api/restaurants/impersonate/${userId}`,
-      );
-      // Store token & user exactly like normal login does
+      const res = await axios.post<{ token: string; user: { role: string } }>(`/api/restaurants/impersonate/${userId}`);
       localStorage.setItem('qra_token', res.data.token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
       toast.success(`Logged in as ${username}`);
-      // Navigate based on role
-      const role = res.data.user.role;
-      if (role === 'kitchen') navigate('/kitchen', { replace: true });
-      else navigate('/admin', { replace: true });
-      // Force a page reload so AuthContext re-reads localStorage
-      window.location.href = role === 'kitchen' ? '/kitchen' : '/admin';
-    } catch {
-      toast.error('Failed to impersonate user');
-    } finally {
-      setImpersonating(null);
-    }
+      window.location.href = res.data.user.role === 'kitchen' ? '/kitchen' : '/admin';
+    } catch { toast.error('Failed to impersonate user'); }
+    finally { setImpersonating(null); }
   }
 
-  // â”€â”€ Create â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function handleCreate() {
     if (!form.name.trim() || !form.adminUsername.trim() || !form.adminPassword.trim()) {
       toast.error('Name, admin username and password are required'); return;
     }
     try {
       const res = await axios.post<Restaurant>('/api/restaurants', {
-        name: form.name,
-        adminUsername: form.adminUsername,
-        adminPassword: form.adminPassword,
-        adminName: form.adminName || undefined,
+        name: form.name, adminUsername: form.adminUsername,
+        adminPassword: form.adminPassword, adminName: form.adminName || undefined,
+        city: form.city || undefined,
       });
       setRestaurants((p) => [...p, res.data]);
-      setForm({ name: '', adminUsername: '', adminPassword: '', adminName: '' });
+      setForm({ name: '', adminUsername: '', adminPassword: '', adminName: '', city: '' });
       setShowForm(false);
       toast.success(`"${res.data.name}" created`);
-    } catch {
-      toast.error('Failed to create restaurant');
-    }
+    } catch { toast.error('Failed to create restaurant'); }
   }
 
-  // â”€â”€ Rename â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  function startEdit(r: Restaurant) { setEditingId(r.id); setEditName(r.name); }
+  const activeCount = restaurants.filter((r) => r.active).length;
+  const s = search.trim().toLowerCase();
+  const filtered = restaurants.filter((r) =>
+    (planFilter === 'all' || (r.plan ?? 'pro') === planFilter) &&
+    (statusFilter === 'all' || (statusFilter === 'active' ? r.active : !r.active)) &&
+    (s === '' || r.name.toLowerCase().includes(s) || r.id.toLowerCase().includes(s) || (r.city ?? '').toLowerCase().includes(s)));
 
-  async function saveEdit(id: string) {
-    if (!editName.trim()) return;
-    try {
-      await axios.put(`/api/restaurants/${id}`, { name: editName.trim() });
-      setRestaurants((p) => p.map((r) => r.id === id ? { ...r, name: editName.trim() } : r));
-      setEditingId(null);
-      toast.success('Restaurant renamed');
-    } catch {
-      toast.error('Failed to update restaurant');
-    }
-  }
-
-  // â”€â”€ Toggle switch UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  function Switch({ on, onChange }: { on: boolean; onChange: () => void }) {
-    return (
-      <button
-        onClick={onChange}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-          on ? 'bg-green-500' : 'bg-gray-300'
-        }`}
-        title={on ? 'Active  -  click to deactivate' : 'Inactive  -  click to activate'}
-      >
-        <span
-          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-            on ? 'translate-x-6' : 'translate-x-1'
-          }`}
-        />
-      </button>
-    );
-  }
+  const navLink = (label: string, Icon: React.ElementType, to: string) => (
+    <button onClick={() => navigate(to)} className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors px-2 py-1">
+      <Icon size={15} /> {label}
+    </button>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
-            <Store size={16} className="text-orange-500" />
+      {/* Top nav */}
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-4 lg:px-6 h-16 flex items-center gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center">
+              <Store size={18} className="text-white" />
+            </div>
+            <div className="leading-tight">
+              <p className="font-bold text-gray-900">Restaurants</p>
+              <p className="text-[11px] text-gray-400">Super Admin</p>
+            </div>
           </div>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold text-gray-900 leading-tight">Restaurants</h1>
-            <p className="text-xs text-gray-400">Super Admin</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate('/admin/requests')}
-              className="flex items-center gap-1 text-gray-600 border border-gray-200 px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-50 transition-colors relative"
-            >
-              <MessageSquarePlus size={14} /> Requests
-              {openRequests > 0 && (
-                <span className="ml-0.5 text-[11px] font-bold bg-blue-100 text-blue-700 rounded-full min-w-[18px] px-1.5 py-0.5 leading-none">
-                  {openRequests}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => navigate('/admin/logs')}
-              className="flex items-center gap-1 text-gray-600 border border-gray-200 px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-50 transition-colors"
-            >
-              <ScrollText size={14} /> Logs
-            </button>
-            <button
-              onClick={() => navigate('/admin/plans')}
-              className="flex items-center gap-1 text-gray-600 border border-gray-200 px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-50 transition-colors"
-            >
-              <CreditCard size={14} /> Plans & Pricing
-            </button>
-            <button
-              onClick={() => setShowForm(true)}
-              className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors"
-            >
-              <Plus size={14} /> New
-            </button>
-            <button
-              onClick={() => { logout(); navigate('/', { replace: true }); }}
-              className="text-gray-400 hover:text-red-500 transition-colors p-1.5"
-              title="Logout"
-            >
-              <LogOut size={18} />
-            </button>
-          </div>
+          <nav className="hidden md:flex items-center gap-1 ml-4">
+            {navLink('Requests', MessageSquarePlus, '/admin/requests')}
+            {navLink('Logs', ScrollText, '/admin/logs')}
+            {navLink('Plans & Pricing', CreditCard, '/admin/plans')}
+          </nav>
+          <div className="flex-1" />
+          <button onClick={() => setShowForm(true)}
+            className="flex items-center gap-1.5 bg-orange-500 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-orange-600 transition-colors">
+            <Plus size={15} /> New Restaurant
+          </button>
+          <button onClick={() => { logout(); navigate('/', { replace: true }); }}
+            className="text-gray-400 hover:text-red-500 transition-colors p-1.5" title="Log out">
+            <LogOut size={18} />
+          </button>
         </div>
       </header>
 
-      {/* List */}
-      <div className="max-w-3xl mx-auto px-4 py-4 space-y-3">
-        {loading ? (
-          <div className="flex justify-center py-16">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
-          </div>
-        ) : restaurants.length === 0 ? (
-          <p className="text-center text-gray-400 mt-12">No restaurants yet</p>
-        ) : (
-          restaurants.map((r) => {
-            const isExpanded = expandedId === r.id;
-            const isFeaturesOpen = featuresOpenId === r.id;
-            const users = usersMap[r.id] ?? [];
-            const rFeatures = r.features ?? ALL_FEATURES_ON;
+      <div className="max-w-6xl mx-auto px-4 lg:px-6 py-6">
+        <h1 className="text-2xl font-extrabold text-gray-900">All Restaurants</h1>
+        <p className="text-sm text-gray-400 mt-0.5">{restaurants.length} total · {activeCount} active</p>
 
-            return (
-              <div
-                key={r.id}
-                className={`bg-white rounded-2xl shadow-sm border transition-colors ${
-                  r.active ? 'border-gray-100' : 'border-red-100 bg-red-50/30'
-                }`}
-              >
-                {/* â”€â”€ Restaurant row â”€â”€ */}
-                <div className="flex items-center gap-3 p-4">
-                  {/* Icon */}
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    r.active ? 'bg-orange-100' : 'bg-gray-100'
-                  }`}>
-                    <Store size={18} className={r.active ? 'text-orange-500' : 'text-gray-400'} />
+        {/* Filters */}
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3 mt-5">
+          <div className="relative flex-1">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, UUID, or city…"
+              className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-orange-300"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="flex gap-1 bg-white border border-gray-200 rounded-full p-1">
+              {(['all', ...PLAN_CODES] as PlanFilter[]).map((p) => (
+                <button key={p} onClick={() => setPlanFilter(p)}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide transition-colors ${planFilter === p ? 'bg-orange-500 text-white' : 'text-gray-500 hover:text-gray-800'}`}>
+                  {p === 'all' ? 'All plans' : p}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1 bg-white border border-gray-200 rounded-full p-1">
+              {(['all', 'active', 'inactive'] as StatusFilter[]).map((st) => (
+                <button key={st} onClick={() => setStatusFilter(st)}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold capitalize transition-colors ${statusFilter === st ? 'bg-orange-500 text-white' : 'text-gray-500 hover:text-gray-800'}`}>
+                  {st === 'all' ? 'All Status' : st}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* List */}
+        <div className="mt-5 space-y-3">
+          {loading ? (
+            <div className="flex justify-center py-16"><Loader2 className="animate-spin text-orange-500" size={28} /></div>
+          ) : filtered.length === 0 ? (
+            <p className="text-center text-gray-400 py-12">No restaurants match these filters.</p>
+          ) : (
+            filtered.map((r) => {
+              const isExpanded = expandedId === r.id;
+              const isManage = manageId === r.id;
+              const users = usersMap[r.id] ?? [];
+              const rFeatures = r.features ?? ALL_FEATURES_ON;
+              return (
+                <div key={r.id} className={`bg-white rounded-2xl border shadow-sm ${r.active ? 'border-gray-100' : 'border-gray-100'}`}>
+                  {/* Row */}
+                  <div className="flex items-center gap-3 p-4">
+                    <div className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+                      <Store size={20} className="text-emerald-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {editingId === r.id ? (
+                        <div className="flex flex-col sm:flex-row gap-2 max-w-md">
+                          <input autoFocus value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(r.id); if (e.key === 'Escape') setEditingId(null); }}
+                            placeholder="Name"
+                            className="flex-1 border border-orange-300 rounded-lg px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-orange-400" />
+                          <input value={editCity}
+                            onChange={(e) => setEditCity(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(r.id); if (e.key === 'Escape') setEditingId(null); }}
+                            placeholder="City (e.g. New York, NY)"
+                            className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-orange-300" />
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-bold text-gray-900">{r.name}</p>
+                          <span className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${PLAN_BADGE[r.plan ?? 'pro'] ?? 'bg-gray-100 text-gray-600'}`}>{r.plan ?? 'pro'}</span>
+                          <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${r.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                            {r.active ? <CheckCircle2 size={11} /> : <CircleSlash size={11} />}{r.active ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                      )}
+                      <p className="text-xs text-gray-400 mt-0.5 font-mono select-all truncate">
+                        {r.id}{r.city ? <span className="font-sans"> · {r.city}</span> : null}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Switch on={r.active} onChange={() => toggleActive(r)} />
+                      {editingId === r.id ? (
+                        <>
+                          <button onClick={() => saveEdit(r.id)} className="p-1.5 text-green-500 hover:text-green-600"><Check size={16} /></button>
+                          <button onClick={() => setEditingId(null)} className="p-1.5 text-gray-400 hover:text-gray-600"><X size={16} /></button>
+                        </>
+                      ) : (
+                        <button onClick={() => startEdit(r)} className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors" title="Rename"><Pencil size={16} /></button>
+                      )}
+                      <button onClick={() => openManage(r)} className={`p-1.5 transition-colors ${isManage ? 'text-orange-500' : 'text-gray-400 hover:text-orange-500'}`} title="Manage plan & features"><SlidersHorizontal size={16} /></button>
+                      <button onClick={() => setDeleteTarget(r)} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Delete"><Trash2 size={16} /></button>
+                      <button onClick={() => toggleExpand(r.id)} className="p-1.5 text-gray-400 hover:text-gray-700 transition-colors" title="View accounts">
+                        {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Name + ID */}
-                  <div className="flex-1 min-w-0">
-                    {editingId === r.id ? (
-                      <input
-                        autoFocus
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') saveEdit(r.id);
-                          if (e.key === 'Escape') setEditingId(null);
-                        }}
-                        className="w-full border border-orange-300 rounded-lg px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-orange-400"
-                      />
-                    ) : (
-                      <p className={`font-semibold truncate ${r.active ? 'text-gray-900' : 'text-gray-400'}`}>
-                        {r.name}
-                        {!r.active && (
-                          <span className="ml-2 text-xs text-red-400 font-normal">Inactive</span>
-                        )}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[11px] font-bold uppercase tracking-wide text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
-                        {r.plan ?? 'pro'}
-                      </span>
-                      {r.subscriptionStatus && (
-                        <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full capitalize ${SUB_BADGE[r.subscriptionStatus] ?? 'bg-gray-100 text-gray-600'}`}>
-                          {r.subscriptionStatus.replace('_', ' ')}
-                          {r.subscriptionStatus === 'trialing' && r.trialEndsAt ? `  .  ${daysUntil(r.trialEndsAt)}d` : ''}
-                        </span>
+                  {/* Accounts panel */}
+                  {isExpanded && (
+                    <div className="border-t border-gray-100 px-4 pb-4 pt-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Users size={13} className="text-gray-400" />
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex-1">Accounts</p>
+                        {usersMap[r.id] && <span className="text-xs text-gray-400">{users.length} users</span>}
+                      </div>
+                      {usersLoading && !usersMap[r.id] ? (
+                        <div className="flex justify-center py-4"><Loader2 className="animate-spin text-orange-400" size={18} /></div>
+                      ) : users.length === 0 ? (
+                        <p className="text-xs text-gray-400 text-center py-2">No users found</p>
+                      ) : (
+                        <div className="divide-y divide-gray-50">
+                          {users.map((u) => (
+                            <div key={u.id} className="flex items-center gap-3 py-2.5">
+                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full w-20 text-center shrink-0 ${ROLE_BADGE[u.role] ?? 'bg-gray-100 text-gray-600'}`}>{u.role}</span>
+                              <span className="flex-1 text-sm text-gray-800 truncate">{u.name || u.username}</span>
+                              <button onClick={() => loginAs(u.id, u.username)} disabled={impersonating === u.id}
+                                className="inline-flex items-center gap-1.5 border border-gray-200 text-gray-600 px-2.5 py-1 rounded-lg text-xs font-medium hover:bg-gray-50 hover:text-orange-600 hover:border-orange-200 transition-colors disabled:opacity-50">
+                                {impersonating === u.id ? <Loader2 size={12} className="animate-spin" /> : <LogIn size={12} />} Login As
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
-                    <p className="text-xs text-gray-400 mt-0.5 font-mono select-all">{r.id}</p>
-                  </div>
+                  )}
 
-                  {/* Controls */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    {/* Active toggle */}
-                    <Switch on={r.active} onChange={() => toggleActive(r)} />
-
-                    {/* Edit / Save */}
-                    {editingId === r.id ? (
-                      <>
-                        <button onClick={() => saveEdit(r.id)} className="text-green-500 hover:text-green-600">
-                          <Check size={16} />
-                        </button>
-                        <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600">
-                          <X size={16} />
-                        </button>
-                      </>
-                    ) : (
-                      <button onClick={() => startEdit(r)} className="text-gray-400 hover:text-blue-500 transition-colors">
-                        <Pencil size={16} />
-                      </button>
-                    )}
-
-                    {/* Features toggle */}
-                    <button
-                      onClick={() => setFeaturesOpenId(isFeaturesOpen ? null : r.id)}
-                      className={`transition-colors ${isFeaturesOpen ? 'text-blue-500' : 'text-gray-400 hover:text-blue-500'}`}
-                      title="Manage features"
-                    >
-                      <Sliders size={16} />
-                    </button>
-
-                    {/* Billing toggle */}
-                    <button
-                      onClick={() => openBilling(r)}
-                      className={`transition-colors ${billingOpenId === r.id ? 'text-green-600' : 'text-gray-400 hover:text-green-600'}`}
-                      title="Manage subscription"
-                    >
-                      <CreditCard size={16} />
-                    </button>
-
-                    {/* Expand users */}
-                    <button
-                      onClick={() => toggleExpand(r.id)}
-                      className="text-gray-400 hover:text-orange-500 transition-colors"
-                      title="View users"
-                    >
-                      {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                    </button>
-                  </div>
+                  {/* Manage panel: subscription + features */}
+                  {isManage && (
+                    <div className="border-t border-gray-100 px-4 pb-4 pt-3 space-y-4">
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Subscription</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                          <select value={billingDraft.plan} onChange={(e) => setBillingDraft((d) => ({ ...d, plan: e.target.value as PlanCode }))}
+                            className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-orange-300 bg-white capitalize">
+                            {PLAN_CODES.map((c) => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                          <select value={billingDraft.status} onChange={(e) => setBillingDraft((d) => ({ ...d, status: e.target.value as SubscriptionStatus }))}
+                            className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-orange-300 bg-white capitalize">
+                            {STATUSES.map((st) => <option key={st} value={st}>{st.replace('_', ' ')}</option>)}
+                          </select>
+                          <input type="number" min="0" value={billingDraft.trialDays} onChange={(e) => setBillingDraft((d) => ({ ...d, trialDays: e.target.value }))}
+                            disabled={billingDraft.status !== 'trialing'} placeholder="Trial days"
+                            className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-orange-300 disabled:bg-gray-50 disabled:text-gray-300" />
+                          <button onClick={() => saveBilling(r)} disabled={savingBilling}
+                            className="bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-60 flex items-center justify-center gap-1.5 px-3 py-1.5">
+                            {savingBilling ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Save
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Features</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {FEATURE_LABELS.map(({ key, label, description }) => {
+                            const enabled = rFeatures[key] !== false;
+                            return (
+                              <div key={key} className={`flex items-center gap-3 rounded-xl px-3 py-2 border ${enabled ? 'bg-orange-50/40 border-orange-100' : 'bg-gray-50 border-gray-100'}`}>
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-sm font-medium truncate ${enabled ? 'text-gray-900' : 'text-gray-400'}`}>{label}</p>
+                                  <p className="text-xs text-gray-400 truncate">{description}</p>
+                                </div>
+                                <button onClick={() => toggleFeature(r, key)} disabled={togglingFeature === `${r.id}:${key}`}
+                                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 disabled:opacity-50 ${enabled ? 'bg-orange-500' : 'bg-gray-300'}`}>
+                                  <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-
-                {/* â”€â”€ Users panel â”€â”€ */}
-                {isExpanded && (
-                  <div className="border-t border-gray-100 px-4 pb-4 pt-3">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Users size={13} className="text-gray-400" />
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Accounts</p>
-                    </div>
-
-                    {usersLoading && !usersMap[r.id] ? (
-                      <div className="flex justify-center py-4">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-400" />
-                      </div>
-                    ) : users.length === 0 ? (
-                      <p className="text-xs text-gray-400 text-center py-2">No users found</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {users.map((u) => (
-                          <div
-                            key={u.id}
-                            className="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-100"
-                          >
-                            {/* Role badge */}
-                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${ROLE_BADGE[u.role] ?? 'bg-gray-100 text-gray-600'}`}>
-                              {u.role}
-                            </span>
-
-                            {/* User info */}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-gray-800 truncate">{u.username}</p>
-                              {u.name && u.name !== u.username && (
-                                <p className="text-xs text-gray-400 truncate">{u.name}</p>
-                              )}
-                            </div>
-
-                            {/* Login As */}
-                            <button
-                              onClick={() => loginAs(u.id, u.username)}
-                              disabled={impersonating === u.id}
-                              className="flex items-center gap-1 text-xs bg-orange-500 text-white px-2.5 py-1.5 rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 shrink-0"
-                              title={`Login as ${u.username}`}
-                            >
-                              {impersonating === u.id ? (
-                                <span className="animate-pulse">…</span>
-                              ) : (
-                                <>
-                                  <LogIn size={12} /> Login As
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* â”€â”€ Billing panel â”€â”€ */}
-                {billingOpenId === r.id && (
-                  <div className="border-t border-gray-100 px-4 pb-4 pt-3">
-                    <div className="flex items-center gap-2 mb-3">
-                      <CreditCard size={13} className="text-green-600" />
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Subscription</p>
-                      <span className="ml-auto text-xs text-gray-400">Override plan &amp; status</span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div>
-                        <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Plan</label>
-                        <select
-                          value={billingDraft.plan}
-                          onChange={(e) => setBillingDraft((d) => ({ ...d, plan: e.target.value as PlanCode }))}
-                          className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-green-300 bg-white capitalize"
-                        >
-                          {PLAN_CODES.map((c) => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Status</label>
-                        <select
-                          value={billingDraft.status}
-                          onChange={(e) => setBillingDraft((d) => ({ ...d, status: e.target.value as SubscriptionStatus }))}
-                          className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-green-300 bg-white capitalize"
-                        >
-                          {STATUSES.map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Trial days</label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={billingDraft.trialDays}
-                          onChange={(e) => setBillingDraft((d) => ({ ...d, trialDays: e.target.value }))}
-                          disabled={billingDraft.status !== 'trialing'}
-                          className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-green-300 disabled:bg-gray-50 disabled:text-gray-300"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex justify-end gap-2 mt-3">
-                      <button onClick={() => setBillingOpenId(null)} className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg">Cancel</button>
-                      <button
-                        onClick={() => saveBilling(r)}
-                        disabled={savingBilling}
-                        className="px-4 py-1.5 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60"
-                      >
-                        {savingBilling ? 'Saving…' : 'Save'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* â”€â”€ Features panel â”€â”€ */}
-                {isFeaturesOpen && (
-                  <div className="border-t border-gray-100 px-4 pb-4 pt-3">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Sliders size={13} className="text-blue-500" />
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Features</p>
-                      <span className="ml-auto text-xs text-gray-400">Toggle modules for this restaurant</span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {FEATURE_LABELS.map(({ key, label, description }) => {
-                        const enabled = rFeatures[key] !== false;
-                        const isToggling = togglingFeature === `${r.id}:${key}`;
-                        return (
-                          <div
-                            key={key}
-                            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 border transition-colors ${
-                              enabled ? 'bg-blue-50/50 border-blue-100' : 'bg-gray-50 border-gray-100'
-                            }`}
-                          >
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-sm font-medium truncate ${enabled ? 'text-gray-900' : 'text-gray-400'}`}>
-                                {label}
-                              </p>
-                              <p className="text-xs text-gray-400 truncate">{description}</p>
-                            </div>
-                            <button
-                              onClick={() => toggleFeature(r, key)}
-                              disabled={isToggling}
-                              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none shrink-0 disabled:opacity-50 ${
-                                enabled ? 'bg-blue-500' : 'bg-gray-300'
-                              }`}
-                            >
-                              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
-                                enabled ? 'translate-x-[18px]' : 'translate-x-[3px]'
-                              }`} />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
+              );
+            })
+          )}
+        </div>
       </div>
 
       {/* Create modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md p-6 space-y-4">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" onClick={() => setShowForm(false)}>
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">New Restaurant</h2>
-              <button onClick={() => setShowForm(false)}>
-                <X size={20} className="text-gray-400" />
-              </button>
+              <button onClick={() => setShowForm(false)}><X size={20} className="text-gray-400" /></button>
             </div>
-
             <div className="space-y-3">
               <div>
                 <label className="text-sm text-gray-600 mb-1 block">Restaurant Name *</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="e.g. The Grand Bistro"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
-                />
+                <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. The Grand Bistro"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300" />
               </div>
-
+              <div>
+                <label className="text-sm text-gray-600 mb-1 block">City</label>
+                <input value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} placeholder="e.g. New York, NY"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300" />
+              </div>
               <div className="border-t border-gray-100 pt-3">
-                <p className="text-xs text-gray-400 mb-2 uppercase tracking-wide font-medium">
-                  Initial Admin Account
-                </p>
+                <p className="text-xs text-gray-400 mb-2 uppercase tracking-wide font-medium">Initial Admin Account</p>
                 <div className="space-y-2">
-                  <input
-                    type="text"
-                    value={form.adminName}
-                    onChange={(e) => setForm((f) => ({ ...f, adminName: e.target.value }))}
-                    placeholder="Full name (optional)"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
-                  />
-                  <input
-                    type="text"
-                    value={form.adminUsername}
-                    onChange={(e) => setForm((f) => ({ ...f, adminUsername: e.target.value }))}
-                    placeholder="Username *"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
-                  />
-                  <input
-                    type="password"
-                    value={form.adminPassword}
-                    onChange={(e) => setForm((f) => ({ ...f, adminPassword: e.target.value }))}
-                    placeholder="Password *"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
-                  />
+                  <input value={form.adminName} onChange={(e) => setForm((f) => ({ ...f, adminName: e.target.value }))} placeholder="Full name (optional)"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300" />
+                  <input value={form.adminUsername} onChange={(e) => setForm((f) => ({ ...f, adminUsername: e.target.value }))} placeholder="Username *"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300" />
+                  <input type="password" value={form.adminPassword} onChange={(e) => setForm((f) => ({ ...f, adminPassword: e.target.value }))} placeholder="Password *"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300" />
                 </div>
               </div>
             </div>
+            <button onClick={handleCreate} className="w-full bg-orange-500 text-white py-3 rounded-2xl font-semibold hover:bg-orange-600 transition-colors">Create Restaurant</button>
+          </div>
+        </div>
+      )}
 
-            <button
-              onClick={handleCreate}
-              className="w-full bg-orange-500 text-white py-3 rounded-2xl font-semibold hover:bg-orange-600 transition-colors"
-            >
-              Create Restaurant
-            </button>
+      {/* Delete confirm */}
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => !deleting && setDeleteTarget(null)}>
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center mb-4"><Trash2 size={22} className="text-red-600" /></div>
+            <h2 className="text-lg font-bold text-gray-900">Delete “{deleteTarget.name}”?</h2>
+            <p className="text-sm text-gray-500 mt-1.5">
+              This permanently removes the restaurant and <span className="font-semibold">all of its data</span> — menu, orders, accounts, bills and history. This cannot be undone.
+            </p>
+            <div className="flex gap-2 mt-5">
+              <button onClick={() => setDeleteTarget(null)} disabled={deleting}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 disabled:opacity-50">Cancel</button>
+              <button onClick={confirmDelete} disabled={deleting}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60 flex items-center justify-center gap-2">
+                {deleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />} Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

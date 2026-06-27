@@ -30,15 +30,15 @@ export function FinancePage() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden mt-14 md:mt-0">
         <AdminHeader title="Finance" backTo="/admin" />
 
-        <div className="bg-white border-b border-gray-100 px-3 sm:px-4 lg:px-6 flex gap-1 shrink-0">
+        <div className="bg-white border-b border-gray-100 px-3 sm:px-4 lg:px-6 py-3 flex flex-wrap gap-2 shrink-0">
           {TABS.map(({ key, label, Icon }) => (
             <button
               key={key}
               onClick={() => switchTab(key)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
                 tab === key
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
               <Icon size={15} />

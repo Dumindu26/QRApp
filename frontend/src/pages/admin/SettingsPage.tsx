@@ -1912,8 +1912,8 @@ export function SettingsPage() {
             )}
           </div>
 
-          {/* ── Tab bar (segmented pills, wrap so every tab stays visible) ──── */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-1.5 flex flex-wrap gap-1 mb-6">
+          {/* ── Tab bar (rounded pills, wrap so every tab stays visible) ──── */}
+          <div className="flex flex-wrap gap-2 mb-6">
             {TABS.map((tab) => {
               const active = activeTab === tab.id;
               const dirty = isDirty[tab.id];
@@ -1921,10 +1921,10 @@ export function SettingsPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative flex items-center gap-2 px-4 py-2 text-sm whitespace-nowrap rounded-xl transition-colors ${
+                  className={`relative flex items-center gap-2 px-4 py-1.5 text-sm font-semibold whitespace-nowrap rounded-full transition-colors ${
                     active
-                      ? 'bg-gray-900 text-white font-semibold'
-                      : 'text-gray-500 font-medium hover:text-gray-900 hover:bg-gray-50'
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
                   <tab.Icon size={15} />

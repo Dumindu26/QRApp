@@ -158,6 +158,7 @@ export async function createSchema(): Promise<void> {
   const addCol = async (table: string, col: string, def: string) => {
     await pool.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS ${col} ${def};`);
   };
+  await addCol('restaurants', 'city',                  'VARCHAR(120) NULL');
   await addCol('restaurants', 'service_charge_pct',   'DECIMAL(5,2) NOT NULL DEFAULT 0');
   await addCol('restaurants', 'tax_pct',               'DECIMAL(5,2) NOT NULL DEFAULT 0');
   await addCol('restaurants', 'currency',              "VARCHAR(10) NOT NULL DEFAULT 'USD'");
