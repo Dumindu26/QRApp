@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
 import {
-  Rocket, LayoutDashboard, ShoppingCart, UtensilsCrossed,
+  LayoutDashboard, ShoppingCart, UtensilsCrossed,
   QrCode, MapPin, MonitorPlay, ChefHat,
   Receipt, Users, Warehouse, BarChart2,
   Settings, Star, ArrowLeft, CreditCard, MessageSquarePlus,
@@ -65,7 +65,7 @@ export function LauncherPage() {
     <div className="flex h-screen bg-gray-50">
       <AdminSidebar />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <AdminHeader title="Launcher" icon={Rocket} />
+        <AdminHeader title="Launcher" />
         <main className="flex-1 overflow-y-auto p-6 flex flex-col">
 
           {activeGroup ? (
