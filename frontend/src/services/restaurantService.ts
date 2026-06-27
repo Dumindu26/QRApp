@@ -192,9 +192,13 @@ export const restaurantService = {
   getBrandingBySlug: (slug: string): Promise<LoginBranding> =>
     axios.get<LoginBranding>(`${BASE}/restaurants/by-slug/${encodeURIComponent(slug)}/branding`).then((r) => r.data),
 
-  /** Public — no auth. App-wide branding (login icon) stored in the database. */
-  getAppSettings: (): Promise<{ loginIcon: string | null }> =>
-    axios.get<{ loginIcon: string | null }>(`${BASE}/app-settings/public`).then((r) => r.data),
+  /** Public — no auth. App-wide branding (login icon, WhatsApp number) stored in the database. */
+  getAppSettings: (): Promise<{ loginIcon: string | null; whatsappNumber: string | null }> =>
+    axios.get<{ loginIcon: string | null; whatsappNumber: string | null }>(`${BASE}/app-settings/public`).then((r) => r.data),
+
+  /** Super admin — set the app-wide WhatsApp contact number (digits only, or blank to clear). */
+  setWhatsappNumber: (number: string): Promise<{ whatsappNumber: string | null }> =>
+    axios.put<{ whatsappNumber: string | null }>(`${BASE}/app-settings/whatsapp`, { number }).then((r) => r.data),
 
   updateName: (id: string, name: string) =>
     axios.put<RestaurantSettings>(`${BASE}/restaurants/${id}`, { name }).then((r) => r.data),

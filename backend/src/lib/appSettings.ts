@@ -7,6 +7,7 @@ let cache = new Map<string, string>();
 
 export const SUBSCRIPTIONS_ENABLED_KEY = 'subscriptions_enabled';
 export const LOGIN_ICON_KEY = 'login_icon';
+export const WHATSAPP_NUMBER_KEY = 'whatsapp_number';
 
 export async function loadAppSettings(): Promise<void> {
   try {
@@ -47,4 +48,18 @@ export function getLoginIcon(): string | null {
 
 export async function setLoginIcon(dataUrl: string): Promise<void> {
   await setSetting(LOGIN_ICON_KEY, dataUrl);
+}
+
+/**
+ * App-wide WhatsApp contact number (digits only, international format — e.g.
+ * "94771234567"), shown as a click-to-chat button on the marketing site.
+ * Returns null when unset/blank so the button can hide itself.
+ */
+export function getWhatsappNumber(): string | null {
+  const v = cache.get(WHATSAPP_NUMBER_KEY);
+  return v ? v : null;
+}
+
+export async function setWhatsappNumber(number: string): Promise<void> {
+  await setSetting(WHATSAPP_NUMBER_KEY, number);
 }

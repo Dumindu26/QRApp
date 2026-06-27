@@ -4,6 +4,7 @@ import {
   ArrowRight, Check, ScanLine, UtensilsCrossed, Bell, Star,
 } from 'lucide-react';
 import { MarketingNav, MarketingFooter } from '../../components/marketing/MarketingNav';
+import { WhatsAppButton } from '../../components/marketing/WhatsAppButton';
 
 const FEATURES = [
   { Icon: QrCode,      title: 'QR ordering',        blurb: 'Guests scan, browse a live menu and order from their phone — no app, no waiting.' },
@@ -204,6 +205,8 @@ export function LandingPage() {
       </section>
 
       <MarketingFooter />
+
+      <WhatsAppButton />
     </div>
   );
 }
