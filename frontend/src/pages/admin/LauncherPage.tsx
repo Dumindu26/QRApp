@@ -6,7 +6,7 @@ import {
   Rocket, LayoutDashboard, ShoppingCart, UtensilsCrossed,
   QrCode, MapPin, MonitorPlay, ChefHat,
   Receipt, Users, Warehouse, BarChart2,
-  Settings, Star, ArrowLeft,
+  Settings, Star, ArrowLeft, CreditCard, MessageSquarePlus,
 } from 'lucide-react';
 
 type NavLeaf = { label: string; icon: React.ElementType; to: string; color: string };
@@ -26,6 +26,8 @@ const TOP_NAV: NavEntry[] = [
   { type: 'item', label: 'Stock',   icon: Warehouse, to: '/admin/stock',   color: 'bg-amber-50  text-amber-600'  },
   { type: 'item', label: 'Loyalty', icon: Star,      to: '/admin/loyalty', color: 'bg-amber-50  text-amber-600'  },
   { type: 'item', label: 'Reports', icon: BarChart2, to: '/admin/reports', color: 'bg-gray-100 text-gray-600' },
+  { type: 'item', label: 'Subscription', icon: CreditCard, to: '/admin/billing', color: 'bg-pink-50 text-pink-600' },
+  { type: 'item', label: 'Feedback', icon: MessageSquarePlus, to: '/admin/feedback', color: 'bg-sky-50 text-sky-600' },
   { type: 'item', label: 'Settings', icon: Settings, to: '/admin/settings', color: 'bg-gray-100 text-gray-600' },
 ];
 

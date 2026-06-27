@@ -2,13 +2,14 @@
 import { useNavigate } from 'react-router-dom';
 import {
   Plus, Pencil, Check, X, Store, LogOut,
-  ChevronDown, ChevronUp, LogIn, Users, Sliders, CreditCard, ScrollText,
+  ChevronDown, ChevronUp, LogIn, Users, Sliders, CreditCard, ScrollText, MessageSquarePlus,
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import type { RestaurantFeatures } from '../../context/AuthContext';
 import { subscriptionService, daysUntil, type PlanCode, type SubscriptionStatus } from '../../services/subscriptionService';
+import { featureRequestService } from '../../services/featureRequestService';
 
 const PLAN_CODES: PlanCode[] = ['free', 'starter', 'pro'];
 const STATUSES: SubscriptionStatus[] = ['trialing', 'active', 'past_due', 'canceled'];
@@ -78,6 +79,7 @@ export function RestaurantsPage() {
 
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading]         = useState(true);
+  const [openRequests, setOpenRequests] = useState(0);
   const [showForm, setShowForm]       = useState(false);
   const [editingId, setEditingId]     = useState<string | null>(null);
   const [editName, setEditName]       = useState('');
@@ -133,6 +135,7 @@ export function RestaurantsPage() {
       .finally(() => setLoading(false));
 
   useEffect(() => { load(); }, []);
+  useEffect(() => { featureRequestService.openCount().then(setOpenRequests).catch(() => {}); }, []);
 
   // â”€â”€ Toggle active â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function toggleActive(r: Restaurant) {
@@ -271,6 +274,17 @@ export function RestaurantsPage() {
             <p className="text-xs text-gray-400">Super Admin</p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/admin/requests')}
+              className="flex items-center gap-1 text-gray-600 border border-gray-200 px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-50 transition-colors relative"
+            >
+              <MessageSquarePlus size={14} /> Requests
+              {openRequests > 0 && (
+                <span className="ml-0.5 text-[11px] font-bold bg-blue-100 text-blue-700 rounded-full min-w-[18px] px-1.5 py-0.5 leading-none">
+                  {openRequests}
+                </span>
+              )}
+            </button>
             <button
               onClick={() => navigate('/admin/logs')}
               className="flex items-center gap-1 text-gray-600 border border-gray-200 px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-50 transition-colors"

@@ -37,6 +37,7 @@ import stockRouter from './routes/stock';
 import loyaltyRouter from './routes/loyalty';
 import auditLogsRouter from './routes/auditLogs';
 import appSettingsRouter from './routes/appSettings';
+import featureRequestsRouter from './routes/featureRequests';
 import simBotRouter from './routes/simBot';
 import './lib/vapid'; // initialise VAPID keys at startup
 import { startStaleOrderChecker } from './lib/staleOrderChecker';
@@ -132,6 +133,7 @@ app.use('/api/stock',           stockRouter);
 app.use('/api/loyalty',         loyaltyRouter);
 app.use('/api/audit-logs',      auditLogsRouter);
 app.use('/api/app-settings',    appSettingsRouter);
+app.use('/api/feature-requests', featureRequestsRouter);
 if (process.env.NODE_ENV !== 'production') {
   app.use('/api/dev/sim-bot', simBotRouter);
 }

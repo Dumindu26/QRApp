@@ -281,6 +281,24 @@ export async function createSchema(): Promise<void> {
     );
   `);
 
+  // Feature requests & bug reports — restaurant admins submit, super admin triages.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS feature_requests (
+      id              VARCHAR(36)  NOT NULL PRIMARY KEY,
+      restaurant_id   VARCHAR(36)  NOT NULL,
+      submitted_by    VARCHAR(36)  NOT NULL,
+      submitter_name  VARCHAR(120) NOT NULL DEFAULT '',
+      type            VARCHAR(10)  NOT NULL,            -- 'feature' | 'bug'
+      title           VARCHAR(160) NOT NULL,
+      description     TEXT         NOT NULL DEFAULT '',
+      status          VARCHAR(16)  NOT NULL DEFAULT 'open', -- open | in_progress | resolved | declined
+      admin_note      TEXT         NOT NULL DEFAULT '',
+      created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+      updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
+    );
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_feature_requests_restaurant ON feature_requests (restaurant_id, created_at DESC);');
+
   // Reservations (phone bookings now; online later) — for tables or rooms.
   // A legacy, unused reservations table (date/time/table_number, no rooms) may
   // exist from an earlier schema. Replace it once — guarded by the presence of

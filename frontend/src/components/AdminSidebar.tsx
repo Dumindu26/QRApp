@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingCart, UtensilsCrossed, BarChart2,
   Users, Settings, ChefHat, MonitorPlay,
   Receipt, QrCode, CreditCard,
-  Warehouse, Menu, X, MapPin, Star,
+  Warehouse, Menu, X, MapPin, Star, MessageSquarePlus,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { RestaurantFeatures } from '../context/AuthContext';
@@ -42,6 +42,7 @@ const NAV: NavItem[] = [
   { type: 'item', label: 'Loyalty',      icon: Star,            to: '/admin/loyalty',       adminOnly: true },
   { type: 'item', label: 'Reports',      icon: BarChart2,       to: '/admin/reports',       perm: 'reports' },
   { type: 'item', label: 'Subscription', icon: CreditCard,      to: '/admin/billing',       adminOnly: true },
+  { type: 'item', label: 'Feedback',     icon: MessageSquarePlus, to: '/admin/feedback',    adminOnly: true },
   { type: 'item', label: 'Settings',     icon: Settings,        to: '/admin/settings',      adminOnly: true },
 ];
 
