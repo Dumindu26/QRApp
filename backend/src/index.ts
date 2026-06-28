@@ -39,6 +39,7 @@ import auditLogsRouter from './routes/auditLogs';
 import appSettingsRouter from './routes/appSettings';
 import featureRequestsRouter from './routes/featureRequests';
 import simBotRouter from './routes/simBot';
+import promoScreensRouter from './routes/promoScreens';
 import './lib/vapid'; // initialise VAPID keys at startup
 import { startStaleOrderChecker } from './lib/staleOrderChecker';
 import { startSubscriptionChecker } from './lib/subscriptionChecker';
@@ -53,7 +54,7 @@ const isProd = process.env.NODE_ENV === 'production';
 app.use(helmet());
 
 // ── CORS ────────────────────────────────────────────────────────────────────
-const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? 'http://localhost:5173,http://localhost:4173')
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173')
   .split(',')
   .map((o) => o.trim())
   .filter(Boolean);
@@ -134,6 +135,7 @@ app.use('/api/loyalty',         loyaltyRouter);
 app.use('/api/audit-logs',      auditLogsRouter);
 app.use('/api/app-settings',    appSettingsRouter);
 app.use('/api/feature-requests', featureRequestsRouter);
+app.use('/api/promo-screens', promoScreensRouter);
 if (process.env.NODE_ENV !== 'production') {
   app.use('/api/dev/sim-bot', simBotRouter);
 }

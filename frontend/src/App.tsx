@@ -56,6 +56,8 @@ const SessionReceiptPage   = lazy(() => import('./pages/admin/SessionReceiptPage
 const RestaurantsPage      = lazy(() => import('./pages/admin/RestaurantsPage').then(m => ({ default: m.RestaurantsPage })));
 const NewOrderPage         = lazy(() => import('./pages/admin/NewOrderPage').then(m => ({ default: m.NewOrderPage })));
 const ReadyDisplayPage     = lazy(() => import('./pages/admin/ReadyDisplayPage').then(m => ({ default: m.ReadyDisplayPage })));
+const PromoScreensPage     = lazy(() => import('./pages/admin/PromoScreensPage').then(m => ({ default: m.PromoScreensPage })));
+const PromoDisplayPage     = lazy(() => import('./pages/display/PromoDisplayPage').then(m => ({ default: m.PromoDisplayPage })));
 const ReportsPage          = lazy(() => import('./pages/admin/ReportsPage').then(m => ({ default: m.ReportsPage })));
 const AuditLogsPage        = lazy(() => import('./pages/admin/AuditLogsPage').then(m => ({ default: m.AuditLogsPage })));
 const PromoCodesPage       = lazy(() => import('./pages/admin/PromoCodesPage').then(m => ({ default: m.PromoCodesPage })));
@@ -233,6 +235,7 @@ export default function App() {
             <Route path="/my-orders" element={<PhoneLookupPage />} />
             <Route path="/takeaway/:restaurantId" element={<TakeawayMenuPage />} />
             <Route path="/room/:roomId" element={<RoomMenuPage />} />
+            <Route path="/display/:token" element={<PromoDisplayPage />} />
 
             {/* Admin routes */}
             <Route path="/admin" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']}><AdminHome /></ProtectedRoute>} />
@@ -258,6 +261,7 @@ export default function App() {
             <Route path="/admin/logs" element={<ProtectedRoute roles={['super_admin']}><AuditLogsPage /></ProtectedRoute>} />
             <Route path="/admin/new-order" element={<ProtectedRoute roles={['admin','manager','cashier','waiter']} permission="newOrder"><NewOrderPage /></ProtectedRoute>} />
             <Route path="/admin/ready-display" element={<ProtectedRoute permission="readyDisplay"><ReadyDisplayPage /></ProtectedRoute>} />
+            <Route path="/admin/promo-screens" element={<ProtectedRoute roles={['admin','manager']} permission="promoScreens"><PromoScreensPage /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute roles={['admin','manager']} permission="reports"><ReportsPage /></ProtectedRoute>} />
             <Route path="/admin/shift-close" element={<ProtectedRoute roles={['admin','manager','cashier']} permission="shiftReport"><ShiftCloseReportPage /></ProtectedRoute>} />
             <Route path="/admin/promo-codes" element={<ProtectedRoute roles={['admin','manager']} permission="promoCodes"><PromoCodesPage /></ProtectedRoute>} />

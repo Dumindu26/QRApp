@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingCart, UtensilsCrossed, BarChart2,
   Users, Settings, ChefHat, MonitorPlay,
-  Receipt, QrCode, CreditCard,
+  Receipt, QrCode, CreditCard, ImagePlus,
   Warehouse, Menu, X, MapPin, Star, MessageSquarePlus,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -36,6 +36,7 @@ const NAV: NavItem[] = [
   { type: 'item', label: 'Floor',        icon: MapPin,          to: '/admin/floor',         perm: 'locations' },
   { type: 'item', label: 'Kitchen',      icon: ChefHat,         to: '/kitchen' },
   { type: 'item', label: 'Ready Display',icon: MonitorPlay,     to: '/admin/ready-display' },
+  { type: 'item', label: 'Promo Screens',icon: ImagePlus,       to: '/admin/promo-screens', featureKey: 'promoScreens', perm: 'promoScreens' },
   { type: 'item', label: 'Finance',      icon: Receipt,         to: '/admin/finance',       perm: 'bills' },
   { type: 'item', label: 'Staff',        icon: Users,           to: '/admin/users',         adminOnly: true },
   { type: 'item', label: 'Stock',        icon: Warehouse,       to: '/admin/stock',         perm: 'stock' },

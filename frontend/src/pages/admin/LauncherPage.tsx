@@ -4,7 +4,7 @@ import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
 import {
   LayoutDashboard, ShoppingCart, UtensilsCrossed,
-  QrCode, MapPin, MonitorPlay, ChefHat,
+  QrCode, MapPin, MonitorPlay, ChefHat, ImagePlus,
   Receipt, Users, Warehouse, BarChart2,
   Settings, Star, ArrowLeft, CreditCard, MessageSquarePlus,
 } from 'lucide-react';
@@ -21,6 +21,7 @@ const TOP_NAV: NavEntry[] = [
   { type: 'item',  label: 'Floor',          icon: MapPin,      to: '/admin/floor',         color: 'bg-purple-50 text-purple-600' },
   { type: 'item',  label: 'Kitchen',        icon: ChefHat,     to: '/kitchen',              color: 'bg-red-50    text-red-600'    },
   { type: 'item',  label: 'Ready Display',  icon: MonitorPlay, to: '/admin/ready-display',  color: 'bg-red-50    text-red-600'    },
+  { type: 'item',  label: 'Promo Screens',  icon: ImagePlus,   to: '/admin/promo-screens',  color: 'bg-sky-50    text-sky-600'    },
   { type: 'item', label: 'Finance', icon: Receipt, to: '/admin/finance', color: 'bg-teal-50 text-teal-600' },
   { type: 'item', label: 'Staff',   icon: Users,     to: '/admin/users',   color: 'bg-indigo-50 text-indigo-600' },
   { type: 'item', label: 'Stock',   icon: Warehouse, to: '/admin/stock',   color: 'bg-amber-50  text-amber-600'  },

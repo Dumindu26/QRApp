@@ -5,7 +5,7 @@
 export const ALL_FEATURES = [
   'combos', 'menuSchedules', 'roomCharges', 'promoCodes',
   'reports', 'roster', 'shiftReport', 'staffPerformance',
-  'tableStatus', 'readyDisplay', 'kitchenDisplay', 'bills',
+  'tableStatus', 'readyDisplay', 'kitchenDisplay', 'promoScreens', 'bills',
 ] as const;
 
 export type FeatureKey = typeof ALL_FEATURES[number];
@@ -14,7 +14,7 @@ export type RestaurantFeatures = Record<FeatureKey, boolean>;
 export const DEFAULT_FEATURES: RestaurantFeatures = {
   combos: true, menuSchedules: true, roomCharges: true, promoCodes: true,
   reports: true, roster: true, shiftReport: true, staffPerformance: true,
-  tableStatus: true, readyDisplay: true, kitchenDisplay: true, bills: true,
+  tableStatus: true, readyDisplay: true, kitchenDisplay: true, promoScreens: true, bills: true,
 };
 
 export function parseFeatures(raw: unknown): RestaurantFeatures {

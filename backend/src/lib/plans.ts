@@ -67,7 +67,7 @@ export const DEFAULT_PLANS: Plan[] = [
     priceLkrYear: 25000,
     priceUsdYear: 190,
     tagline: 'Everything a busy restaurant needs day-to-day',
-    features: ['bills', 'reports', 'promoCodes', 'tableStatus', 'readyDisplay', 'kitchenDisplay'],
+    features: ['bills', 'reports', 'promoCodes', 'tableStatus', 'readyDisplay', 'kitchenDisplay', 'promoScreens'],
     highlights: [
       'Everything in Free',
       'Bills & payments',
@@ -87,7 +87,7 @@ export const DEFAULT_PLANS: Plan[] = [
     priceLkrYear: 60000,
     priceUsdYear: 490,
     tagline: 'The full suite for multi-area operations',
-    features: ['combos', 'menuSchedules', 'roomCharges', 'promoCodes', 'reports', 'roster', 'shiftReport', 'staffPerformance', 'tableStatus', 'readyDisplay', 'kitchenDisplay', 'bills'],
+    features: ['combos', 'menuSchedules', 'roomCharges', 'promoCodes', 'reports', 'roster', 'shiftReport', 'staffPerformance', 'tableStatus', 'readyDisplay', 'kitchenDisplay', 'promoScreens', 'bills'],
     highlights: [
       'Everything in Starter',
       'Combo deals',

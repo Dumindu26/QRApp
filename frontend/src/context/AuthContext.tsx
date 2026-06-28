@@ -22,13 +22,14 @@ export interface RestaurantFeatures {
   tableStatus: boolean;
   readyDisplay: boolean;
   kitchenDisplay: boolean;
+  promoScreens: boolean;
   bills: boolean;
 }
 
 export const ALL_FEATURES_ON: RestaurantFeatures = {
   combos: true, menuSchedules: true, roomCharges: true, promoCodes: true,
   reports: true, roster: true, shiftReport: true, staffPerformance: true,
-  tableStatus: true, readyDisplay: true, kitchenDisplay: true, bills: true,
+  tableStatus: true, readyDisplay: true, kitchenDisplay: true, promoScreens: true, bills: true,
 };
 
 interface AuthContextValue {

@@ -8,7 +8,7 @@ export type PermissionKey =
   | 'orders' | 'newOrder' | 'tableStatus'
   | 'menu' | 'combos' | 'menuSchedules'
   | 'locations'
-  | 'kitchenDisplay' | 'readyDisplay'
+  | 'kitchenDisplay' | 'readyDisplay' | 'promoScreens'
   | 'bills' | 'roomCharges' | 'promoCodes'
   | 'reports' | 'shiftReport' | 'stockReport'
   | 'stock'
@@ -53,6 +53,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     items: [
       { key: 'kitchenDisplay', label: 'Kitchen Display', feature: 'kitchenDisplay' },
       { key: 'readyDisplay',   label: 'Ready Display',   feature: 'readyDisplay' },
+      { key: 'promoScreens',   label: 'Promo Screens',   feature: 'promoScreens' },
     ],
   },
   {

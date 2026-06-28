@@ -25,13 +25,14 @@ const FEATURE_LABELS: { key: keyof RestaurantFeatures; label: string; descriptio
   { key: 'tableStatus',     label: 'Table Status',      description: 'Live table occupancy overview' },
   { key: 'kitchenDisplay',  label: 'Kitchen Display',   description: 'KDS screen for kitchen staff' },
   { key: 'readyDisplay',    label: 'Ready Display',     description: 'Order-ready notification screen' },
+  { key: 'promoScreens',    label: 'Promo Screens',     description: 'Customer-facing promotional display screens' },
   { key: 'staffPerformance',label: 'Staff Performance', description: 'Staff productivity and tips tracking' },
   { key: 'roster',          label: 'Roster',            description: 'Staff shift scheduling' },
 ];
 const ALL_FEATURES_ON: RestaurantFeatures = {
   combos: true, menuSchedules: true, roomCharges: true, promoCodes: true,
   reports: true, roster: true, shiftReport: true, staffPerformance: true,
-  tableStatus: true, readyDisplay: true, kitchenDisplay: true, bills: true,
+  tableStatus: true, readyDisplay: true, kitchenDisplay: true, promoScreens: true, bills: true,
 };
 
 const PLAN_BADGE: Record<string, string> = {

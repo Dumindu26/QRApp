@@ -154,6 +154,39 @@ export async function createSchema(): Promise<void> {
     );
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS promo_screens (
+      id               VARCHAR(36)  NOT NULL PRIMARY KEY,
+      restaurant_id    VARCHAR(36)  NOT NULL,
+      name             VARCHAR(120) NOT NULL,
+      slug             VARCHAR(120) NOT NULL,
+      token            VARCHAR(64)  NOT NULL UNIQUE,
+      active           BOOLEAN      NOT NULL DEFAULT TRUE,
+      rotation_seconds INTEGER      NOT NULL DEFAULT 12,
+      fit_mode         VARCHAR(20)  NOT NULL DEFAULT 'cover',
+      background_color VARCHAR(20)  NOT NULL DEFAULT '#111827',
+      created_at       VARCHAR(50)  NOT NULL,
+      updated_at       VARCHAR(50)  NOT NULL,
+      UNIQUE(restaurant_id, slug)
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS promo_screen_items (
+      id              VARCHAR(36)   NOT NULL PRIMARY KEY,
+      screen_id       VARCHAR(36)   NOT NULL REFERENCES promo_screens(id) ON DELETE CASCADE,
+      restaurant_id   VARCHAR(36)   NOT NULL,
+      title           VARCHAR(160)  NOT NULL DEFAULT '',
+      subtitle        VARCHAR(240)  NOT NULL DEFAULT '',
+      image_url       VARCHAR(1000) NOT NULL,
+      link_url        VARCHAR(1000) NULL,
+      active          BOOLEAN       NOT NULL DEFAULT TRUE,
+      sort_order      INTEGER       NOT NULL DEFAULT 0,
+      created_at      VARCHAR(50)   NOT NULL,
+      updated_at      VARCHAR(50)   NOT NULL
+    );
+  `);
+
   // Safe column additions for older databases
   const addCol = async (table: string, col: string, def: string) => {
     await pool.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS ${col} ${def};`);

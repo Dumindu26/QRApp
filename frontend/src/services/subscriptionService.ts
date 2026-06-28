@@ -92,6 +92,7 @@ export const FEATURE_OPTIONS: { key: string; label: string }[] = [
   { key: 'tableStatus', label: 'Table status' },
   { key: 'readyDisplay', label: 'Ready display' },
   { key: 'kitchenDisplay', label: 'Kitchen display' },
+  { key: 'promoScreens', label: 'Promo screens' },
   { key: 'combos', label: 'Combo deals' },
   { key: 'menuSchedules', label: 'Menu schedules' },
   { key: 'roomCharges', label: 'Room charges' },

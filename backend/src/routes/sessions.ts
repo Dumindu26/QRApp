@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { v4 as uuid } from 'uuid';
+import { randomUUID as uuid } from 'crypto';
 import { pool } from '../db/database';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { autoPrintReceipt } from '../services/printerService';
