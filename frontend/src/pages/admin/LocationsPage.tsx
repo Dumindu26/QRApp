@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import {
   Plus, Trash2, QrCode, Printer,
-  BedDouble, Table2, ShoppingBag, Download, Copy, Check,
+  BedDouble, Table2, ShoppingBag, Download, Copy, Check, Pencil, X,
 } from 'lucide-react';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import type { Table, Room } from '../../types';
@@ -76,6 +76,7 @@ export function LocationsPage() {
   const [tableSeats, setTableSeats] = useState('4');
   const [tableQrPreview, setTableQrPreview] = useState<Table | null>(null);
   const [takeawayQrOpen, setTakeawayQrOpen] = useState(false);
+  const [editingTable, setEditingTable] = useState<{ id: string; number: string; seats: string } | null>(null);
 
   // â”€â”€ Rooms state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [rooms, setRooms]         = useState<Room[]>([]);
@@ -167,6 +168,20 @@ export function LocationsPage() {
       setTables((p) => p.filter((t) => t.id !== id));
       toast.success('Deleted');
     } catch { toast.error('Failed to delete'); }
+  }
+
+  async function saveTable() {
+    if (!editingTable) return;
+    const n = parseInt(editingTable.number), s = parseInt(editingTable.seats);
+    if (!n || !s) return toast.error('Enter valid number and seats');
+    const dup = tables.find((t) => t.number === n && t.id !== editingTable.id);
+    if (dup) return toast.error('Table number already exists');
+    try {
+      const updated = await tableService.updateTable(editingTable.id, { number: n, seats: s });
+      setTables((p) => p.map((t) => t.id === updated.id ? updated : t).sort((a, b) => a.number - b.number));
+      setEditingTable(null);
+      toast.success(`Table ${n} updated`);
+    } catch { toast.error('Failed to update table'); }
   }
 
   function printOneTable(table: Table) {
@@ -376,22 +391,59 @@ export function LocationsPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
                 {tables.map((table) => (
                   <div key={table.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 text-center">
-                    <p className="text-2xl font-bold text-gray-900 mb-0.5">{table.number}</p>
-                    <p className="text-xs text-gray-400 mb-3">{table.seats} seats</p>
-                    <div className="flex justify-center gap-1.5 flex-wrap">
-                      <button onClick={() => setTableQrPreview(table)} className="flex items-center gap-1 text-xs bg-orange-50 text-orange-600 px-2.5 py-1 rounded-full hover:bg-orange-100 transition-colors">
-                        <QrCode size={12} /> QR
-                      </button>
-                      <button onClick={() => printOneTable(table)} className="flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full hover:bg-gray-200 transition-colors">
-                        <Printer size={12} /> Print
-                      </button>
-                      <button onClick={() => downloadTableQr(table)} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full hover:bg-blue-100 transition-colors">
-                        <Download size={12} /> PNG
-                      </button>
-                      <button onClick={() => delTable(table.id, table.number)} className="flex items-center text-xs bg-red-50 text-red-500 px-2.5 py-1 rounded-full hover:bg-red-100 transition-colors">
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
+                    {editingTable?.id === table.id ? (
+                      <>
+                        <div className="flex gap-1.5 mb-2">
+                          <input
+                            type="number"
+                            value={editingTable.number}
+                            onChange={(e) => setEditingTable({ ...editingTable, number: e.target.value })}
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveTable(); if (e.key === 'Escape') setEditingTable(null); }}
+                            placeholder="Table #"
+                            className="w-full border border-gray-200 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-orange-300"
+                            autoFocus
+                          />
+                          <input
+                            type="number"
+                            value={editingTable.seats}
+                            onChange={(e) => setEditingTable({ ...editingTable, seats: e.target.value })}
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveTable(); if (e.key === 'Escape') setEditingTable(null); }}
+                            placeholder="Seats"
+                            className="w-full border border-gray-200 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-orange-300"
+                          />
+                        </div>
+                        <div className="flex gap-1.5 justify-center">
+                          <button onClick={saveTable} className="flex items-center gap-1 text-xs bg-orange-500 text-white px-3 py-1 rounded-full hover:bg-orange-600 transition-colors font-medium">
+                            <Check size={11} /> Save
+                          </button>
+                          <button onClick={() => setEditingTable(null)} className="flex items-center text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full hover:bg-gray-200 transition-colors">
+                            <X size={11} />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-2xl font-bold text-gray-900 mb-0.5">{table.number}</p>
+                        <p className="text-xs text-gray-400 mb-3">{table.seats} seats</p>
+                        <div className="flex justify-center gap-1.5 flex-wrap">
+                          <button onClick={() => setTableQrPreview(table)} className="flex items-center gap-1 text-xs bg-orange-50 text-orange-600 px-2.5 py-1 rounded-full hover:bg-orange-100 transition-colors">
+                            <QrCode size={12} /> QR
+                          </button>
+                          <button onClick={() => printOneTable(table)} className="flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full hover:bg-gray-200 transition-colors">
+                            <Printer size={12} /> Print
+                          </button>
+                          <button onClick={() => downloadTableQr(table)} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full hover:bg-blue-100 transition-colors">
+                            <Download size={12} /> PNG
+                          </button>
+                          <button onClick={() => setEditingTable({ id: table.id, number: String(table.number), seats: String(table.seats) })} className="flex items-center text-xs bg-amber-50 text-amber-600 px-2.5 py-1 rounded-full hover:bg-amber-100 transition-colors">
+                            <Pencil size={12} />
+                          </button>
+                          <button onClick={() => delTable(table.id, table.number)} className="flex items-center text-xs bg-red-50 text-red-500 px-2.5 py-1 rounded-full hover:bg-red-100 transition-colors">
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
