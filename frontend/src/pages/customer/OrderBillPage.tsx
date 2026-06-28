@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { Clock, ChefHat, Bell, Loader2, Receipt, XCircle, Download } from 'lucide-react';
+import { Clock, ChefHat, Bell, Receipt, XCircle, Download } from 'lucide-react';
+import { BrandLoader } from '../../components/BrandLoader';
 import type { Order } from '../../types';
 import { orderService } from '../../services/orderService';
 import { restaurantService, type RestaurantInfo } from '../../services/restaurantService';
@@ -76,11 +77,7 @@ export function OrderBillPage() {
   }, [orderId, order?.status, load]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 size={28} className="animate-spin text-orange-500" />
-      </div>
-    );
+    return <BrandLoader logo={info?.logo} />;
   }
 
   if (error || !order) {

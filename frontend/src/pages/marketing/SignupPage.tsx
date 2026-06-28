@@ -46,9 +46,8 @@ export function SignupPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex flex-col items-center justify-center px-5 py-10">
-      <Link to="/" className="flex items-center gap-2 font-extrabold text-gray-900 text-xl mb-6">
-        <img src="/orderlive-icon.png" alt="Order Live" className="w-9 h-9 object-contain" />
-        Order Live
+      <Link to="/" className="mb-6" aria-label="Order Live">
+        <img src="/orderlive-logo.png" alt="orderlive.online" className="h-9 w-auto object-contain" />
       </Link>
 
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-7">

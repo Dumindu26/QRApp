@@ -1,26 +1,34 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { RequestDemoModal } from './RequestDemoModal';
 
-export function BrandLogo({ className = 'text-lg' }: { className?: string }) {
+export function BrandLogo({ className = 'h-7 sm:h-8' }: { className?: string }) {
   return (
-    <Link to="/" className={`flex items-center gap-2 font-extrabold text-gray-900 ${className}`}>
-      <img src="/orderlive-icon.png" alt="Order Live" className="w-8 h-8 object-contain" />
-      Order Live
+    <Link to="/" className="inline-flex items-center" aria-label="Order Live">
+      <img src="/orderlive-logo.png" alt="orderlive.online" className={`${className} w-auto object-contain`} />
     </Link>
   );
 }
 
 export function MarketingNav() {
+  const [demoOpen, setDemoOpen] = useState(false);
   return (
-    <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-gray-100">
-      <nav className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
-        <BrandLogo />
-        <div className="flex items-center gap-1 sm:gap-3 text-sm font-medium">
-          <Link to="/pricing" className="px-3 py-2 text-gray-600 hover:text-gray-900">Pricing</Link>
-          <Link to="/login" className="px-3 py-2 text-gray-600 hover:text-gray-900">Log in</Link>
-          <Link to="/signup" className="px-4 py-2 rounded-full bg-orange-500 text-white hover:bg-orange-600 transition-colors">Start free</Link>
-        </div>
-      </nav>
-    </header>
+    <>
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-gray-100">
+        <nav className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+          <BrandLogo />
+          <div className="flex items-center gap-1 sm:gap-3 text-sm font-medium">
+            <Link to="/pricing" className="px-3 py-2 text-gray-600 hover:text-gray-900">Pricing</Link>
+            <button onClick={() => setDemoOpen(true)} className="hidden sm:inline-block px-3 py-2 text-gray-600 hover:text-gray-900">Request a demo</button>
+            <Link to="/login" className="px-3 py-2 text-gray-600 hover:text-gray-900">Log in</Link>
+            <Link to="/signup" className="px-4 py-2 rounded-full bg-orange-500 text-white hover:bg-orange-600 transition-colors">Start free</Link>
+          </div>
+        </nav>
+      </header>
+      {/* Rendered outside <header>: its backdrop-blur would otherwise become the
+          containing block for this fixed-position modal and trap it in the nav. */}
+      <RequestDemoModal open={demoOpen} onClose={() => setDemoOpen(false)} />
+    </>
   );
 }
 

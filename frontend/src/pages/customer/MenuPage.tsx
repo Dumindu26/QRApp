@@ -5,6 +5,7 @@ import type { Category, MenuItem } from '../../types';
 import { menuService } from '../../services/menuService';
 import { tableService } from '../../services/tableService';
 import { restaurantService } from '../../services/restaurantService';
+import { BrandLoader } from '../../components/BrandLoader';
 import { CategoryTabs } from '../../components/CategoryTabs';
 import { MenuCard } from '../../components/MenuCard';
 import { CartButton } from '../../components/CartButton';
@@ -136,11 +137,7 @@ export function MenuPage() {
     : tagFiltered;
   const filtered = showFavourites ? baseFiltered.filter((i) => isFavourite(i.id)) : baseFiltered;
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500" />
-      </div>
-    );
+    return <BrandLoader logo={restaurantInfo?.logo} />;
   }
 
   if (error) {

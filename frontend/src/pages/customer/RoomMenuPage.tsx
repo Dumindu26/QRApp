@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { BrandLoader } from '../../components/BrandLoader';
 import {
   BedDouble, Plus, Minus, Trash2, ChevronUp, ChevronDown,
   UtensilsCrossed, Tag, CheckCircle, X, Clock, RefreshCw, Search,
@@ -370,11 +371,7 @@ export function RoomMenuPage() {
     }
   }
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500" />
-    </div>
-  );
+  if (loading) return <BrandLoader logo={welcomeInfo?.logo} />;
 
   if (loadError) return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center">

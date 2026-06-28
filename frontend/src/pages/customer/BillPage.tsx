@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, RefreshCw, Loader2, Receipt, Download } from 'lucide-react';
+import { CheckCircle2, RefreshCw, Receipt, Download } from 'lucide-react';
+import { BrandLoader } from '../../components/BrandLoader';
 import { sessionService, type Session } from '../../services/sessionService';
 import { restaurantService, computeCharges, type RestaurantInfo } from '../../services/restaurantService';
 import { useCurrency } from '../../context/CurrencyContext';
@@ -52,11 +53,7 @@ export function BillPage() {
   }, [sessionId, session?.status, load]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 size={28} className="animate-spin text-orange-500" />
-      </div>
-    );
+    return <BrandLoader logo={info?.logo} />;
   }
 
   if (error || !session) {

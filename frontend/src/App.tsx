@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect, useRef } from 'react';
-import { Loader2 } from 'lucide-react';
+import { BrandLoader } from './components/BrandLoader';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import axios from 'axios';
@@ -93,11 +93,7 @@ function DeployRibbon() {
 }
 
 function PageLoader() {
-  return (
-    <div className="flex items-center justify-center h-screen">
-      <Loader2 size={28} className="animate-spin text-orange-400" />
-    </div>
-  );
+  return <BrandLoader />;
 }
 
 function OfflineSyncManager() {
@@ -182,11 +178,7 @@ function LowStockChecker() {
 function RootRedirect() {
   const { user, loading } = useAuth();
   const { loading: cfgLoading } = useSubscriptionConfig();
-  if (loading || cfgLoading) return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center">
-      <Loader2 size={32} className="animate-spin text-orange-500" />
-    </div>
-  );
+  if (loading || cfgLoading) return <BrandLoader />;
   // Anonymous: always show the demo launcher landing page.
   if (!user) return <LandingPage />;
   if (user.role === 'kitchen') return <Navigate to="/kitchen" replace />;

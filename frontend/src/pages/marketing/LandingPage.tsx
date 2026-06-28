@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   QrCode, Smartphone, ChefHat, Wallet, BarChart3, Boxes, Gift, Building2,
@@ -5,6 +6,7 @@ import {
 } from 'lucide-react';
 import { MarketingNav, MarketingFooter } from '../../components/marketing/MarketingNav';
 import { WhatsAppButton } from '../../components/marketing/WhatsAppButton';
+import { RequestDemoModal } from '../../components/marketing/RequestDemoModal';
 
 const FEATURES = [
   { Icon: QrCode,      title: 'QR ordering',        blurb: 'Guests scan, browse a live menu and order from their phone — no app, no waiting.' },
@@ -38,6 +40,7 @@ const TRUST = [
 ];
 
 export function LandingPage() {
+  const [demoOpen, setDemoOpen] = useState(false);
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <MarketingNav />
@@ -69,12 +72,13 @@ export function LandingPage() {
               >
                 Start free trial <ArrowRight size={18} />
               </Link>
-              <Link
-                to="/pricing"
+              <button
+                type="button"
+                onClick={() => setDemoOpen(true)}
                 className="inline-flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 font-semibold px-6 py-3.5 rounded-2xl hover:border-gray-300 hover:bg-gray-50 transition-colors"
               >
-                See pricing
-              </Link>
+                Request a demo
+              </button>
             </div>
             <p className="mt-4 text-sm text-gray-400 flex items-center gap-2 justify-center lg:justify-start">
               <Check size={15} className="text-emerald-500" /> Free trial · no credit card · cancel anytime
@@ -207,6 +211,7 @@ export function LandingPage() {
       <MarketingFooter />
 
       <WhatsAppButton />
+      <RequestDemoModal open={demoOpen} onClose={() => setDemoOpen(false)} />
     </div>
   );
 }
