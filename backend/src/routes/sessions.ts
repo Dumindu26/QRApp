@@ -49,7 +49,8 @@ async function buildSessionDetail(row: Record<string, unknown>) {
   const orders = await Promise.all(ordersRes.rows.map(async (o: Record<string, unknown>) => {
     const itemsRes = await pool.query(ORDER_ITEMS_SQL, [o.id as string]);
     return {
-      id: o.id, status: o.status, totalAmount: Number(o.total_amount), createdAt: o.created_at,
+      id: o.id, orderNumber: (o.order_number as string | null) ?? null,
+      status: o.status, totalAmount: Number(o.total_amount), createdAt: o.created_at,
       rating: o.rating != null ? Number(o.rating) : null,
       feedbackNote: (o.feedback_note as string | null) ?? null,
       items: (itemsRes.rows as Record<string, unknown>[]).map((i) => ({
