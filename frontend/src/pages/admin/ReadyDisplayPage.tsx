@@ -73,7 +73,7 @@ export function ReadyDisplayPage() {
                       className="bg-purple-600 rounded-2xl p-4 flex flex-col items-center justify-center text-center gap-1 shadow-lg animate-pulse-once"
                     >
                       <span className="text-3xl font-black tracking-tight leading-none">
-                        {order.orderNumber ?? order.id.slice(0, 6).toUpperCase()}
+                        {order.orderNumber ?? 'Order'}
                       </span>
                       {order.customerName && (
                         <span className="text-sm text-purple-200 font-medium truncate w-full">{order.customerName}</span>

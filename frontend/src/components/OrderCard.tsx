@@ -770,7 +770,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
         {showPayOrder && (
           <PaymentMethodModal
             title="How was this paid?"
-            subtitle={`#${order.orderNumber ?? order.id.slice(0, 8).toUpperCase()} · ${fmt(order.totalAmount)}`}
+            subtitle={`#${order.orderNumber ?? 'Order'} · ${fmt(order.totalAmount)}`}
             total={order.totalAmount}
             enabledMethods={settings?.enabledPaymentMethods}
             onConfirm={handlePayOrder}

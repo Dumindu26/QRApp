@@ -119,7 +119,7 @@ export function RoomChargesPage({ embedded = false }: { embedded?: boolean }) {
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-gray-800">
-                            {order.orderNumber ?? order.id.slice(0, 8)}
+                            {order.orderNumber ?? 'Order'}
                             <span className="ml-2 text-xs font-normal text-gray-400 capitalize">{order.status}</span>
                           </p>
                           <ul className="mt-1 space-y-0.5">

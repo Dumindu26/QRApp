@@ -655,7 +655,7 @@ export function BillsPage({ embedded = false }: { embedded?: boolean }) {
                             </div>
                             <div className="min-w-0">
                               <span className="inline-block font-mono font-bold text-sm text-purple-700 bg-white/70 px-2 py-0.5 rounded-md tracking-wide">
-                                #{order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}
+                                #{order.orderNumber ?? 'Order'}
                               </span>
                               {order.customerName && <p className="text-xs text-gray-600 truncate mt-1">{order.customerName}</p>}
                             </div>
@@ -750,7 +750,7 @@ export function BillsPage({ embedded = false }: { embedded?: boolean }) {
                             </div>
                             <div className="min-w-0">
                               <p className="font-medium text-gray-700 text-sm truncate">
-                                {order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}
+                                {order.orderNumber ?? 'Order'}
                               </p>
                               {order.customerName && <p className="text-xs text-gray-400 truncate">{order.customerName}</p>}
                               <p className="text-xs text-gray-400 whitespace-nowrap">
@@ -783,7 +783,7 @@ export function BillsPage({ embedded = false }: { embedded?: boolean }) {
                             {canRefund && (
                               <button
                                 onClick={() => setRefundTarget({
-                                  label: order.orderNumber ?? order.id.slice(0, 8).toUpperCase(),
+                                  label: order.orderNumber ?? 'Order',
                                   maxAmount: order.totalAmount,
                                   orderId: order.id,
                                 })}
@@ -827,7 +827,7 @@ export function BillsPage({ embedded = false }: { embedded?: boolean }) {
                             </div>
                             <div className="min-w-0">
                               <span className="inline-block font-mono font-bold text-sm text-blue-700 bg-white/70 px-2 py-0.5 rounded-md tracking-wide">
-                                #{order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}
+                                #{order.orderNumber ?? 'Order'}
                               </span>
                               {order.roomNumber && <p className="text-xs text-blue-600 mt-0.5">Room {order.roomNumber}</p>}
                               {order.customerName && <p className="text-xs text-gray-500 truncate">{order.customerName}</p>}
@@ -897,7 +897,7 @@ export function BillsPage({ embedded = false }: { embedded?: boolean }) {
                             </div>
                             <div className="min-w-0">
                               <p className="font-medium text-gray-700 text-sm truncate">
-                                {order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}
+                                {order.orderNumber ?? 'Order'}
                               </p>
                               {order.roomNumber && <p className="text-xs text-gray-400">Room {order.roomNumber}</p>}
                               <p className="text-xs text-gray-400 whitespace-nowrap">

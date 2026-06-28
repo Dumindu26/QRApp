@@ -142,7 +142,7 @@ export function KitchenTicketPage() {
 
         {/* Order ref + time */}
         <p className="order-ref">
-          {order.orderNumber ? `#${order.orderNumber}` : `#${order.id.slice(0, 6).toUpperCase()}`}
+          #{order.orderNumber ?? 'Order'}
         </p>
         <p className="center" style={{ fontSize: 11, marginTop: 2 }}>
           {dateStr}   .   {timeStr}

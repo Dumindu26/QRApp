@@ -137,7 +137,7 @@ export function AddItemsModal({ order, onClose, onDone }: Props) {
           <div>
             <h2 className="text-lg font-bold text-gray-900">Add Items</h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              Order {order.orderNumber ?? order.id.slice(0, 8).toUpperCase()}
+              Order {order.orderNumber ?? 'Order'}
               {order.tableNumber != null && ` · Table ${order.tableNumber}`}
               {order.roomNumber  != null && ` · Room ${order.roomNumber}`}
               {order.customerName && ` · ${order.customerName}`}

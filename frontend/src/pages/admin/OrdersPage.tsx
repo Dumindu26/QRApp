@@ -613,7 +613,7 @@ export function OrdersPage() {
                             >
                               <div className="flex items-center justify-between gap-2">
                                 <span className="text-sm font-semibold text-gray-900 truncate">
-                                  {order.orderNumber ?? `#${order.id.slice(0, 6)}`}
+                                  {order.orderNumber ?? 'Order'}
                                 </span>
                                 <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${
                                   order.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
@@ -650,7 +650,7 @@ export function OrdersPage() {
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-sm font-semibold text-gray-900 truncate">
-                            {order.orderNumber ?? `#${order.id.slice(0, 6)}`}
+                            {order.orderNumber ?? 'Order'}
                           </span>
                           <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${
                             order.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
