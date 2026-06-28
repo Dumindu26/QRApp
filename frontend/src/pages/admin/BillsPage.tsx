@@ -411,7 +411,7 @@ export function BillsPage({ embedded = false }: { embedded?: boolean }) {
                             {(session.orders ?? []).filter((o) => o.status !== 'cancelled').map((order) => (
                               <li key={order.id} className="flex items-center justify-between">
                                 <span className="text-xs text-gray-500 font-mono">
-                                  #{order.orderNumber ?? order.id.slice(0, 6).toUpperCase()}
+                                  #{order.orderNumber ?? 'Order'}
                                   <span className="ml-1.5 text-gray-400 font-sans">{order.items.length} item{order.items.length !== 1 ? 's' : ''}</span>
                                 </span>
                                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${

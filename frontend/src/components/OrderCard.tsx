@@ -609,7 +609,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
                   {(liveSession.orders ?? []).filter((o) => o.status !== 'cancelled').map((o) => (
                     <li key={o.id} className="flex items-center justify-between">
                       <span className="text-xs text-gray-500 font-mono">
-                        #{o.orderNumber ?? o.id.slice(0, 6).toUpperCase()}
+                        #{o.orderNumber ?? 'Order'}
                         <span className="ml-1.5 text-gray-400 font-sans">{o.items.length} item{o.items.length !== 1 ? 's' : ''}</span>
                       </span>
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${
