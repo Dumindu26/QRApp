@@ -30,6 +30,38 @@
   to { transform: rotate(360deg); }
 }
 
+@keyframes brand-loader-blink {
+  0%, 100% {
+    opacity: 1;
+    filter: drop-shadow(0 12px 24px rgb(31 90 52 / 0.16));
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.52;
+    filter: drop-shadow(0 18px 34px rgb(31 90 52 / 0.28));
+    transform: scale(1.025);
+  }
+}
+
+@keyframes brand-loader-text {
+  0%, 100% {
+    opacity: 0.38;
+    letter-spacing: 0;
+  }
+  50% {
+    opacity: 0.95;
+    letter-spacing: 0;
+  }
+}
+
+.brand-loader-blink {
+  animation: brand-loader-blink 1.45s ease-in-out infinite;
+}
+
+.brand-loader-text {
+  animation: brand-loader-text 1.45s ease-in-out infinite;
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, sans-serif;
