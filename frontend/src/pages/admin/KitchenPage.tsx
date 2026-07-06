@@ -24,7 +24,7 @@ export function KitchenPage() {
 
   const [tab, setTab]       = useState<KitchenTab>('orders');
   const [orders, setOrders] = useState<Order[]>([]);
-  const [panelCollapsed, setPanelCollapsed] = useState(() => localStorage.getItem('kitchenAvailabilityCollapsed') === 'true');
+  const [panelCollapsed, setPanelCollapsed] = useState(() => localStorage.getItem('kitchenAvailabilityCollapsed') !== 'false');
   useEffect(() => {
     localStorage.setItem('kitchenAvailabilityCollapsed', String(panelCollapsed));
   }, [panelCollapsed]);
@@ -39,6 +39,7 @@ export function KitchenPage() {
   const [menuItems, setMenuItems]     = useState<MenuItem[]>([]);
   const [toggling, setToggling]       = useState<Set<string>>(new Set());
   const [itemsLoaded, setItemsLoaded] = useState(false);
+  const [activeCatId, setActiveCatId] = useState<string>('');
 
   // Prep-time countdown clock  -  ticks every 15 s so badges stay fresh
   const [clockMs, setClockMs] = useState(() => Date.now());
@@ -151,6 +152,13 @@ export function KitchenPage() {
   })).filter((g) => g.items.length > 0);
 
   const uncategorised = menuItems.filter((i) => !categories.find((c) => c.id === i.category));
+
+  const OTHER_CAT_ID = '__other__';
+  const categoryTabs = [
+    ...grouped.map(({ cat, items }) => ({ id: cat.id, label: cat.name, items })),
+    ...(uncategorised.length > 0 ? [{ id: OTHER_CAT_ID, label: t('kitchen.other'), items: uncategorised }] : []),
+  ];
+  const activeTab = categoryTabs.find((c) => c.id === activeCatId) ?? categoryTabs[0];
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -333,25 +341,34 @@ export function KitchenPage() {
                     </button>
                   </div>
                 )}
-                {grouped.map(({ cat, items }) => (
-                  <section key={cat.id}>
-                    <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{cat.name}</h2>
-                    <div className="grid grid-cols-1 gap-2">
-                      {items.map((item) => (
-                        <ItemToggleCard key={item.id} item={item} loading={toggling.has(item.id)} onToggle={handleToggle} />
-                      ))}
-                    </div>
-                  </section>
-                ))}
-                {uncategorised.length > 0 && (
-                  <section>
-                    <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{t('kitchen.other')}</h2>
-                    <div className="grid grid-cols-1 gap-2">
-                      {uncategorised.map((item) => (
-                        <ItemToggleCard key={item.id} item={item} loading={toggling.has(item.id)} onToggle={handleToggle} />
-                      ))}
-                    </div>
-                  </section>
+                <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+                  {categoryTabs.map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setActiveCatId(cat.id)}
+                      className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                        activeTab?.id === cat.id
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-800 border border-gray-700 text-gray-400 hover:text-gray-200'
+                      }`}
+                    >
+                      {cat.label}
+                      <span
+                        className={`text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold ${
+                          activeTab?.id === cat.id ? 'bg-white/25' : 'bg-gray-700'
+                        }`}
+                      >
+                        {cat.items.length}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {activeTab && (
+                  <div className="grid grid-cols-1 gap-2">
+                    {activeTab.items.map((item) => (
+                      <ItemToggleCard key={item.id} item={item} loading={toggling.has(item.id)} onToggle={handleToggle} />
+                    ))}
+                  </div>
                 )}
               </>
             )}
