@@ -78,14 +78,14 @@ router.patch('/:id/send', authenticate, requireRole('super_admin'), async (req: 
 
   const html = `
     <p>Hi ${(request.name as string).split(' ')[0]},</p>
-    <p>Thanks for requesting a demo of oderlive${note.trim() ? ` — ${note.trim()}` : ''}!</p>
+    <p>Thanks for requesting a demo of Order Live${note.trim() ? ` — ${note.trim()}` : ''}!</p>
     <p>Here are your demo login credentials:</p>
     <p><b>Username:</b> ${username.trim()}<br/><b>Password:</b> ${password.trim()}</p>
-    <p>Log in at <a href="https://oderlive.online">oderlive.online</a> to explore.</p>
+    <p>Log in at <a href="https://orderlive.online">orderlive.online</a> to explore.</p>
   `;
 
   try {
-    await sendEmail(request.email as string, 'Your oderlive demo access', html);
+    await sendEmail(request.email as string, 'Your Order Live demo access', html);
   } catch (err) {
     res.status(502).json({ error: err instanceof Error ? err.message : 'Failed to send email' }); return;
   }
