@@ -283,17 +283,22 @@ export function KitchenPage() {
             panelCollapsed ? 'md:w-12' : 'md:w-80 lg:w-96'
           }`}
         >
-          {/* Collapse/expand toggle — desktop split view only */}
-          <button
-            onClick={() => setPanelCollapsed((c) => !c)}
-            aria-label={panelCollapsed ? t('kitchen.expandPanel') : t('kitchen.collapsePanel')}
-            className="hidden md:flex items-center justify-center absolute top-4 -left-3 w-6 h-6 rounded-full bg-gray-700 border border-gray-600 text-gray-300 hover:bg-gray-600 hover:text-white transition-colors z-10"
-          >
-            {panelCollapsed ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
-          </button>
+          {/* Sticky header with collapse/expand toggle — desktop split view only */}
+          <div className="hidden md:flex items-center sticky top-0 z-20 bg-gray-800 border-b border-gray-700 px-3 py-2.5">
+            {!panelCollapsed && (
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest flex-1">{t('kitchen.tabAvailability')}</span>
+            )}
+            <button
+              onClick={() => setPanelCollapsed((c) => !c)}
+              aria-label={panelCollapsed ? t('kitchen.expandPanel') : t('kitchen.collapsePanel')}
+              className={`flex items-center justify-center w-7 h-7 rounded-lg bg-gray-700 border border-gray-600 text-gray-300 hover:bg-gray-600 hover:text-white transition-colors ${panelCollapsed ? 'mx-auto' : ''}`}
+            >
+              {panelCollapsed ? <ChevronLeft size={15} /> : <ChevronRight size={15} />}
+            </button>
+          </div>
 
           {/* Collapsed strip — desktop only */}
-          <div className={`hidden ${panelCollapsed ? 'md:flex' : ''} flex-col items-center pt-6 gap-3`}>
+          <div className={`hidden ${panelCollapsed ? 'md:flex' : ''} flex-col items-center pt-4 gap-3`}>
             {itemsLoaded && menuItems.filter((i) => !i.available).length > 0 && (
               <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
                 {menuItems.filter((i) => !i.available).length}
