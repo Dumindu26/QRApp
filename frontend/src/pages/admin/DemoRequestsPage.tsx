@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, Inbox, Send, Ban, Mail, Phone, PenSquare, X } from 'lucide-react';
 import axios from 'axios';
@@ -6,6 +6,20 @@ import toast from 'react-hot-toast';
 import { demoRequestService, type DemoRequestRecord, type DemoRequestStatus } from '../../services/demoRequestService';
 
 const TEMPLATE_PLACEHOLDERS = ['name', 'firstName', 'email', 'restaurantName', 'username', 'password', 'note'];
+
+const PREVIEW_SAMPLE: Record<string, string> = {
+  name: 'Jane Perera',
+  firstName: 'Jane',
+  email: 'jane@restaurant.com',
+  restaurantName: 'The Spice Garden',
+  username: 'demo_jane',
+  password: 'Demo1234!',
+  note: "Looking forward to showing you around!",
+};
+
+function renderTemplate(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => vars[key] ?? '');
+}
 
 function errorMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError(err) && typeof err.response?.data?.error === 'string') return err.response.data.error;
@@ -38,6 +52,8 @@ export function DemoRequestsPage() {
   const [templateSaving, setTemplateSaving] = useState(false);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
+  const previewSubject = useMemo(() => renderTemplate(subject, PREVIEW_SAMPLE), [subject]);
+  const previewBody = useMemo(() => renderTemplate(body, PREVIEW_SAMPLE), [body]);
 
   function openTemplateEditor() {
     setShowTemplate(true);
@@ -143,35 +159,52 @@ export function DemoRequestsPage() {
             {templateLoading ? (
               <div className="flex justify-center py-8"><Loader2 className="animate-spin text-orange-500" size={24} /></div>
             ) : (
-              <>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Subject</label>
-                  <input
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
-                  />
+              <div className="grid lg:grid-cols-2 gap-5">
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Subject</label>
+                    <input
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Body (HTML)</label>
+                    <textarea
+                      value={body}
+                      onChange={(e) => setBody(e.target.value)}
+                      rows={10}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent resize-y"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    Placeholders: {TEMPLATE_PLACEHOLDERS.map((p) => `{{${p}}}`).join(', ')}
+                  </p>
+                  <button
+                    onClick={saveTemplate}
+                    disabled={templateSaving}
+                    className="inline-flex items-center gap-1.5 bg-orange-500 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50"
+                  >
+                    {templateSaving ? <Loader2 size={15} className="animate-spin" /> : 'Save template'}
+                  </button>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Body (HTML)</label>
-                  <textarea
-                    value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                    rows={10}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent resize-y"
-                  />
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-gray-500">Preview (sample data)</label>
+                  <div className="border border-gray-200 rounded-xl overflow-hidden">
+                    <div className="bg-gray-50 border-b border-gray-200 px-3 py-2 text-sm text-gray-700">
+                      <span className="text-gray-400">Subject: </span>{previewSubject || <span className="text-gray-300">—</span>}
+                    </div>
+                    <iframe
+                      title="Email preview"
+                      sandbox=""
+                      srcDoc={previewBody}
+                      className="w-full h-64 bg-white"
+                    />
+                  </div>
                 </div>
-                <p className="text-xs text-gray-400">
-                  Placeholders: {TEMPLATE_PLACEHOLDERS.map((p) => `{{${p}}}`).join(', ')}
-                </p>
-                <button
-                  onClick={saveTemplate}
-                  disabled={templateSaving}
-                  className="inline-flex items-center gap-1.5 bg-orange-500 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50"
-                >
-                  {templateSaving ? <Loader2 size={15} className="animate-spin" /> : 'Save template'}
-                </button>
-              </>
+              </div>
             )}
           </div>
         )}
