@@ -1,8 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, Inbox, Send, Ban, Mail, Phone } from 'lucide-react';
+import axios from 'axios';
 import toast from 'react-hot-toast';
 import { demoRequestService, type DemoRequestRecord, type DemoRequestStatus } from '../../services/demoRequestService';
+
+function errorMessage(err: unknown, fallback: string): string {
+  if (axios.isAxiosError(err) && typeof err.response?.data?.error === 'string') return err.response.data.error;
+  return fallback;
+}
 
 const STATUSES: { key: DemoRequestStatus; label: string; cls: string }[] = [
   { key: 'open',     label: 'Open',     cls: 'bg-blue-100 text-blue-700' },
@@ -52,8 +58,8 @@ export function DemoRequestsPage() {
       const updated = await demoRequestService.sendCredentials(r.id, f);
       setItems((list) => list.map((x) => x.id === r.id ? updated : x));
       toast.success(`Credentials emailed to ${r.email}`);
-    } catch {
-      toast.error('Failed to send email');
+    } catch (err) {
+      toast.error(errorMessage(err, 'Failed to send email'));
     } finally {
       setSavingId(null);
     }
