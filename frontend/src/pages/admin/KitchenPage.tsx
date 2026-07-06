@@ -39,6 +39,20 @@ export function KitchenPage() {
   const [menuItems, setMenuItems]     = useState<MenuItem[]>([]);
   const [toggling, setToggling]       = useState<Set<string>>(new Set());
   const [itemsLoaded, setItemsLoaded] = useState(false);
+  const [collapsedCats, setCollapsedCats] = useState<Set<string>>(
+    () => new Set(JSON.parse(localStorage.getItem('kitchenCollapsedCats') ?? '[]')),
+  );
+  useEffect(() => {
+    localStorage.setItem('kitchenCollapsedCats', JSON.stringify([...collapsedCats]));
+  }, [collapsedCats]);
+
+  function toggleCat(id: string) {
+    setCollapsedCats((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
 
   // Prep-time countdown clock  -  ticks every 15 s so badges stay fresh
   const [clockMs, setClockMs] = useState(() => Date.now());
@@ -143,6 +157,8 @@ export function KitchenPage() {
       setToggling((s) => { const n = new Set(s); n.delete(item.id); return n; });
     }
   }
+
+  const OTHER_CAT_ID = '__other__';
 
   // Items grouped by category
   const grouped = categories.map((cat) => ({
@@ -335,22 +351,50 @@ export function KitchenPage() {
                 )}
                 {grouped.map(({ cat, items }) => (
                   <section key={cat.id}>
-                    <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{cat.name}</h2>
-                    <div className="grid grid-cols-1 gap-2">
-                      {items.map((item) => (
-                        <ItemToggleCard key={item.id} item={item} loading={toggling.has(item.id)} onToggle={handleToggle} />
-                      ))}
-                    </div>
+                    <button
+                      onClick={() => toggleCat(cat.id)}
+                      className="w-full flex items-center gap-2 mb-3 text-left group"
+                    >
+                      <ChevronRight
+                        size={13}
+                        className={`text-gray-500 transition-transform ${collapsedCats.has(cat.id) ? '' : 'rotate-90'}`}
+                      />
+                      <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-gray-200">{cat.name}</h2>
+                      <span className="text-[10px] font-bold bg-gray-700 text-gray-300 rounded-full w-5 h-5 flex items-center justify-center">
+                        {items.length}
+                      </span>
+                    </button>
+                    {!collapsedCats.has(cat.id) && (
+                      <div className="grid grid-cols-1 gap-2">
+                        {items.map((item) => (
+                          <ItemToggleCard key={item.id} item={item} loading={toggling.has(item.id)} onToggle={handleToggle} />
+                        ))}
+                      </div>
+                    )}
                   </section>
                 ))}
                 {uncategorised.length > 0 && (
                   <section>
-                    <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{t('kitchen.other')}</h2>
-                    <div className="grid grid-cols-1 gap-2">
-                      {uncategorised.map((item) => (
-                        <ItemToggleCard key={item.id} item={item} loading={toggling.has(item.id)} onToggle={handleToggle} />
-                      ))}
-                    </div>
+                    <button
+                      onClick={() => toggleCat(OTHER_CAT_ID)}
+                      className="w-full flex items-center gap-2 mb-3 text-left group"
+                    >
+                      <ChevronRight
+                        size={13}
+                        className={`text-gray-500 transition-transform ${collapsedCats.has(OTHER_CAT_ID) ? '' : 'rotate-90'}`}
+                      />
+                      <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-gray-200">{t('kitchen.other')}</h2>
+                      <span className="text-[10px] font-bold bg-gray-700 text-gray-300 rounded-full w-5 h-5 flex items-center justify-center">
+                        {uncategorised.length}
+                      </span>
+                    </button>
+                    {!collapsedCats.has(OTHER_CAT_ID) && (
+                      <div className="grid grid-cols-1 gap-2">
+                        {uncategorised.map((item) => (
+                          <ItemToggleCard key={item.id} item={item} loading={toggling.has(item.id)} onToggle={handleToggle} />
+                        ))}
+                      </div>
+                    )}
                   </section>
                 )}
               </>
