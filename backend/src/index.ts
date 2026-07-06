@@ -38,6 +38,7 @@ import loyaltyRouter from './routes/loyalty';
 import auditLogsRouter from './routes/auditLogs';
 import appSettingsRouter from './routes/appSettings';
 import featureRequestsRouter from './routes/featureRequests';
+import demoRequestsRouter from './routes/demoRequests';
 import simBotRouter from './routes/simBot';
 import promoScreensRouter from './routes/promoScreens';
 import './lib/vapid'; // initialise VAPID keys at startup
@@ -104,6 +105,7 @@ const apiLimiter = rateLimit({
 app.use('/api', apiLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/profile', authLimiter); // password change — same strict limit
+app.post('/api/demo-requests', authLimiter); // public form — same strict limit to deter spam
 
 // ── Static uploads ───────────────────────────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -135,7 +137,8 @@ app.use('/api/loyalty',         loyaltyRouter);
 app.use('/api/audit-logs',      auditLogsRouter);
 app.use('/api/app-settings',    appSettingsRouter);
 app.use('/api/feature-requests', featureRequestsRouter);
-app.use('/api/promo-screens', promoScreensRouter);
+app.use('/api/promo-screens',   promoScreensRouter);
+app.use('/api/demo-requests',   demoRequestsRouter);
 if (process.env.NODE_ENV !== 'production') {
   app.use('/api/dev/sim-bot', simBotRouter);
 }

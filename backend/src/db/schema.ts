@@ -333,6 +333,26 @@ export async function createSchema(): Promise<void> {
   `);
   await pool.query('CREATE INDEX IF NOT EXISTS idx_feature_requests_restaurant ON feature_requests (restaurant_id, created_at DESC);');
 
+  // Public "request a demo" submissions from the marketing site. Super admin
+  // reviews each one and manually sends demo credentials by email.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS demo_requests (
+      id              VARCHAR(36)  NOT NULL PRIMARY KEY,
+      name            VARCHAR(120) NOT NULL,
+      email           VARCHAR(160) NOT NULL,
+      restaurant_name VARCHAR(160) NOT NULL,
+      phone           VARCHAR(30)  NOT NULL DEFAULT '',
+      message         TEXT         NOT NULL DEFAULT '',
+      status          VARCHAR(16)  NOT NULL DEFAULT 'open', -- open | sent | declined
+      demo_username   VARCHAR(60)  NOT NULL DEFAULT '',
+      admin_note      TEXT         NOT NULL DEFAULT '',
+      sent_at         TIMESTAMPTZ,
+      created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+      updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
+    );
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_demo_requests_status ON demo_requests (status, created_at DESC);');
+
   // Reservations (phone bookings now; online later) — for tables or rooms.
   // A legacy, unused reservations table (date/time/table_number, no rooms) may
   // exist from an earlier schema. Replace it once — guarded by the presence of

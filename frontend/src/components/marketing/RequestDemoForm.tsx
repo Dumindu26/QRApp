@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Loader2, CheckCircle2, CalendarClock } from 'lucide-react';
+import { demoRequestService } from '../../services/demoRequestService';
 
 export interface DemoRequest {
   name: string;
@@ -30,9 +31,7 @@ export function RequestDemoForm() {
     }
     setSubmitting(true);
     try {
-      // TODO: wire to backend — POST /api/demo-requests with `form`.
-      // For now we just simulate a successful submission.
-      await new Promise((r) => setTimeout(r, 600));
+      await demoRequestService.create(form);
       setDone(true);
     } catch {
       setError('Something went wrong. Please try again.');

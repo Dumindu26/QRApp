@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Plus, Pencil, Check, X, Store, LogOut, CheckCircle2, CircleSlash,
   ChevronDown, ChevronUp, LogIn, Users, SlidersHorizontal, Trash2, Search,
-  MessageSquarePlus, ScrollText, CreditCard, Loader2,
+  MessageSquarePlus, ScrollText, CreditCard, Loader2, CalendarClock,
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -238,6 +238,7 @@ export function RestaurantsPage() {
             </div>
           </div>
           <nav className="hidden md:flex items-center gap-1 ml-4">
+            {navLink('Demo Requests', CalendarClock, '/admin/demo-requests')}
             {navLink('Requests', MessageSquarePlus, '/admin/requests')}
             {navLink('Logs', ScrollText, '/admin/logs')}
             {navLink('Plans & Pricing', CreditCard, '/admin/plans')}
