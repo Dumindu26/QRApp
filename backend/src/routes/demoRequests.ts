@@ -3,6 +3,11 @@ import { v4 as uuid } from 'uuid';
 import { pool } from '../db/database';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { sendEmail } from '../lib/mailer';
+import { getDemoEmailTemplate } from '../lib/appSettings';
+
+function renderTemplate(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => vars[key] ?? '');
+}
 
 const router = Router();
 
@@ -76,16 +81,21 @@ router.patch('/:id/send', authenticate, requireRole('super_admin'), async (req: 
   if (!existing.rows.length) { res.status(404).json({ error: 'not found' }); return; }
   const request = existing.rows[0] as Record<string, unknown>;
 
-  const html = `
-    <p>Hi ${(request.name as string).split(' ')[0]},</p>
-    <p>Thanks for requesting a demo of Order Live${note.trim() ? ` — ${note.trim()}` : ''}!</p>
-    <p>Here are your demo login credentials:</p>
-    <p><b>Username:</b> ${username.trim()}<br/><b>Password:</b> ${password.trim()}</p>
-    <p>Log in at <a href="https://orderlive.online">orderlive.online</a> to explore.</p>
-  `;
+  const template = getDemoEmailTemplate();
+  const vars = {
+    name: request.name as string,
+    firstName: (request.name as string).split(' ')[0],
+    email: request.email as string,
+    restaurantName: request.restaurant_name as string,
+    username: username.trim(),
+    password: password.trim(),
+    note: note.trim(),
+  };
+  const subject = renderTemplate(template.subject, vars);
+  const html = renderTemplate(template.body, vars);
 
   try {
-    await sendEmail(request.email as string, 'Your Order Live demo access', html);
+    await sendEmail(request.email as string, subject, html);
   } catch (err) {
     res.status(502).json({ error: err instanceof Error ? err.message : 'Failed to send email' }); return;
   }

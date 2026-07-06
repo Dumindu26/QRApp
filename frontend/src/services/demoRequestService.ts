@@ -39,4 +39,11 @@ export const demoRequestService = {
   /** Super admin — decline a request (no email sent). */
   decline: (id: string): Promise<DemoRequestRecord> =>
     axios.patch<DemoRequestRecord>(`${BASE}/demo-requests/${id}`, { status: 'declined' }).then((r) => r.data),
+
+  /** Super admin — the editable "demo credentials" email template. */
+  getEmailTemplate: (): Promise<{ subject: string; body: string }> =>
+    axios.get<{ subject: string; body: string }>(`${BASE}/app-settings/demo-email-template`).then((r) => r.data),
+
+  setEmailTemplate: (subject: string, body: string): Promise<{ subject: string; body: string }> =>
+    axios.put<{ subject: string; body: string }>(`${BASE}/app-settings/demo-email-template`, { subject, body }).then((r) => r.data),
 };

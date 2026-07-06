@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Inbox, Send, Ban, Mail, Phone } from 'lucide-react';
+import { ArrowLeft, Loader2, Inbox, Send, Ban, Mail, Phone, PenSquare, X } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { demoRequestService, type DemoRequestRecord, type DemoRequestStatus } from '../../services/demoRequestService';
+
+const TEMPLATE_PLACEHOLDERS = ['name', 'firstName', 'email', 'restaurantName', 'username', 'password', 'note'];
 
 function errorMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError(err) && typeof err.response?.data?.error === 'string') return err.response.data.error;
@@ -30,6 +32,38 @@ export function DemoRequestsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('open');
   const [savingId, setSavingId] = useState<string | null>(null);
   const [forms, setForms] = useState<Record<string, { username: string; password: string; note: string }>>({});
+
+  const [showTemplate, setShowTemplate] = useState(false);
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [templateSaving, setTemplateSaving] = useState(false);
+  const [subject, setSubject] = useState('');
+  const [body, setBody] = useState('');
+
+  function openTemplateEditor() {
+    setShowTemplate(true);
+    setTemplateLoading(true);
+    demoRequestService.getEmailTemplate()
+      .then((t) => { setSubject(t.subject); setBody(t.body); })
+      .catch(() => toast.error('Failed to load email template'))
+      .finally(() => setTemplateLoading(false));
+  }
+
+  async function saveTemplate() {
+    if (!subject.trim() || !body.trim()) {
+      toast.error('Subject and body are required');
+      return;
+    }
+    setTemplateSaving(true);
+    try {
+      await demoRequestService.setEmailTemplate(subject, body);
+      toast.success('Email template saved');
+      setShowTemplate(false);
+    } catch (err) {
+      toast.error(errorMessage(err, 'Failed to save template'));
+    } finally {
+      setTemplateSaving(false);
+    }
+  }
 
   function load() {
     setLoading(true);
@@ -90,10 +124,58 @@ export function DemoRequestsPage() {
           {openCount > 0 && (
             <span className="text-xs font-semibold bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full">{openCount} open</span>
           )}
+          <button
+            onClick={openTemplateEditor}
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors px-2 py-1"
+          >
+            <PenSquare size={15} /> Edit email template
+          </button>
         </div>
       </header>
 
       <div className="px-4 lg:px-6 py-6 max-w-5xl mx-auto space-y-5">
+        {showTemplate && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-gray-900">Demo credentials email template</h2>
+              <button onClick={() => setShowTemplate(false)} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
+            </div>
+            {templateLoading ? (
+              <div className="flex justify-center py-8"><Loader2 className="animate-spin text-orange-500" size={24} /></div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Subject</label>
+                  <input
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Body (HTML)</label>
+                  <textarea
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    rows={10}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent resize-y"
+                  />
+                </div>
+                <p className="text-xs text-gray-400">
+                  Placeholders: {TEMPLATE_PLACEHOLDERS.map((p) => `{{${p}}}`).join(', ')}
+                </p>
+                <button
+                  onClick={saveTemplate}
+                  disabled={templateSaving}
+                  className="inline-flex items-center gap-1.5 bg-orange-500 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50"
+                >
+                  {templateSaving ? <Loader2 size={15} className="animate-spin" /> : 'Save template'}
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
         <div className="flex gap-1 bg-white border border-gray-200 rounded-full p-1 w-fit">
           <button
             onClick={() => setStatusFilter('all')}

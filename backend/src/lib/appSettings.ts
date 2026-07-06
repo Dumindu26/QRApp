@@ -8,6 +8,16 @@ let cache = new Map<string, string>();
 export const SUBSCRIPTIONS_ENABLED_KEY = 'subscriptions_enabled';
 export const LOGIN_ICON_KEY = 'login_icon';
 export const WHATSAPP_NUMBER_KEY = 'whatsapp_number';
+export const DEMO_EMAIL_SUBJECT_KEY = 'demo_email_subject';
+export const DEMO_EMAIL_BODY_KEY = 'demo_email_body';
+
+export const DEFAULT_DEMO_EMAIL_SUBJECT = 'Your Order Live demo access';
+export const DEFAULT_DEMO_EMAIL_BODY = `<p>Hi {{firstName}},</p>
+<p>Thanks for requesting a demo of Order Live!</p>
+<p>{{note}}</p>
+<p>Here are your demo login credentials:</p>
+<p><b>Username:</b> {{username}}<br/><b>Password:</b> {{password}}</p>
+<p>Log in at <a href="https://orderlive.online">orderlive.online</a> to explore.</p>`;
 
 export async function loadAppSettings(): Promise<void> {
   try {
@@ -62,4 +72,17 @@ export function getWhatsappNumber(): string | null {
 
 export async function setWhatsappNumber(number: string): Promise<void> {
   await setSetting(WHATSAPP_NUMBER_KEY, number);
+}
+
+/** Editable "demo credentials" email template (subject + HTML body with {{placeholders}}). */
+export function getDemoEmailTemplate(): { subject: string; body: string } {
+  return {
+    subject: cache.get(DEMO_EMAIL_SUBJECT_KEY) ?? DEFAULT_DEMO_EMAIL_SUBJECT,
+    body: cache.get(DEMO_EMAIL_BODY_KEY) ?? DEFAULT_DEMO_EMAIL_BODY,
+  };
+}
+
+export async function setDemoEmailTemplate(subject: string, body: string): Promise<void> {
+  await setSetting(DEMO_EMAIL_SUBJECT_KEY, subject);
+  await setSetting(DEMO_EMAIL_BODY_KEY, body);
 }

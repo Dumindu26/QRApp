@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { authenticate, requireRole } from '../middleware/auth';
-import { getLoginIcon, setLoginIcon, getWhatsappNumber, setWhatsappNumber } from '../lib/appSettings';
+import {
+  getLoginIcon, setLoginIcon, getWhatsappNumber, setWhatsappNumber,
+  getDemoEmailTemplate, setDemoEmailTemplate,
+} from '../lib/appSettings';
 
 const router = Router();
 
@@ -31,6 +34,21 @@ router.put('/whatsapp', authenticate, requireRole('super_admin'), async (req, re
   }
   await setWhatsappNumber(number);
   res.json({ whatsappNumber: number || null });
+});
+
+// ── Super admin: view/edit the "demo credentials" email template ──────────────
+router.get('/demo-email-template', authenticate, requireRole('super_admin'), (_req, res) => {
+  res.json(getDemoEmailTemplate());
+});
+
+router.put('/demo-email-template', authenticate, requireRole('super_admin'), async (req, res) => {
+  const { subject, body } = req.body as { subject?: string; body?: string };
+  if (!subject?.trim() || !body?.trim()) {
+    res.status(400).json({ error: 'subject and body are required' });
+    return;
+  }
+  await setDemoEmailTemplate(subject.trim(), body.trim());
+  res.json({ subject: subject.trim(), body: body.trim() });
 });
 
 export default router;
