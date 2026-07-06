@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, LogOut, UtensilsCrossed, ClipboardList, Clock } from 'lucide-react';
+import { ArrowLeft, LogOut, UtensilsCrossed, ClipboardList, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { NotificationBell } from '../../components/NotificationBell';
 import { SoundAlertToggle } from '../../components/SoundAlertToggle';
@@ -24,6 +24,10 @@ export function KitchenPage() {
 
   const [tab, setTab]       = useState<KitchenTab>('orders');
   const [orders, setOrders] = useState<Order[]>([]);
+  const [panelCollapsed, setPanelCollapsed] = useState(() => localStorage.getItem('kitchenAvailabilityCollapsed') === 'true');
+  useEffect(() => {
+    localStorage.setItem('kitchenAvailabilityCollapsed', String(panelCollapsed));
+  }, [panelCollapsed]);
 
   useOrderSoundAlert(orders);
   const [waitTimeMin, setWaitTimeMin]   = useState<number | null>(null);
@@ -274,8 +278,31 @@ export function KitchenPage() {
         </div>
 
         {/* Availability panel */}
-        <div className={`md:w-80 lg:w-96 md:overflow-y-auto md:shrink-0 ${tab !== 'items' ? 'hidden md:block' : ''}`}>
-          <main className="px-3 sm:px-4 lg:px-6 py-4 space-y-6">
+        <div
+          className={`relative md:overflow-y-auto md:shrink-0 transition-[width] duration-200 ${tab !== 'items' ? 'hidden md:block' : ''} ${
+            panelCollapsed ? 'md:w-12' : 'md:w-80 lg:w-96'
+          }`}
+        >
+          {/* Collapse/expand toggle — desktop split view only */}
+          <button
+            onClick={() => setPanelCollapsed((c) => !c)}
+            aria-label={panelCollapsed ? t('kitchen.expandPanel') : t('kitchen.collapsePanel')}
+            className="hidden md:flex items-center justify-center absolute top-4 -left-3 w-6 h-6 rounded-full bg-gray-700 border border-gray-600 text-gray-300 hover:bg-gray-600 hover:text-white transition-colors z-10"
+          >
+            {panelCollapsed ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+          </button>
+
+          {/* Collapsed strip — desktop only */}
+          <div className={`hidden ${panelCollapsed ? 'md:flex' : ''} flex-col items-center pt-6 gap-3`}>
+            {itemsLoaded && menuItems.filter((i) => !i.available).length > 0 && (
+              <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {menuItems.filter((i) => !i.available).length}
+              </span>
+            )}
+            <UtensilsCrossed size={18} className="text-gray-400" />
+          </div>
+
+          <main className={`px-3 sm:px-4 lg:px-6 py-4 space-y-6 ${panelCollapsed ? 'md:hidden' : ''}`}>
             {!itemsLoaded ? (
               <div className="flex justify-center pt-16">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400" />

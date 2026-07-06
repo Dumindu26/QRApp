@@ -237,7 +237,9 @@
     "waitTimeCleared": "රැඳීමේ කාලය ඉවත් කරන ලදී",
     "waitTimeFailed": "රැඳීමේ කාලය යාවත්කාලීන කිරීම අසාර්ථකයි",
     "availabilityUpdated": "\"{{name}}\" {{status}} ලෙස සලකුණු කරන ලදී",
-    "availabilityFailed": "ලබා ගැනීමේ හැකියාව යාවත්කාලීන කිරීම අසාර්ථකයි"
+    "availabilityFailed": "ලබා ගැනීමේ හැකියාව යාවත්කාලීන කිරීම අසාර්ථකයි",
+    "collapsePanel": "පැනලය හකුළන්න",
+    "expandPanel": "පැනලය විහිදන්න"
   },
   "reports": {
     "title": "වාර්තා",

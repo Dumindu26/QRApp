@@ -237,7 +237,9 @@
     "waitTimeCleared": "待ち時間をクリアしました",
     "waitTimeFailed": "待ち時間の更新に失敗しました",
     "availabilityUpdated": "「{{name}}」を{{status}}に設定しました",
-    "availabilityFailed": "在庫状況の更新に失敗しました"
+    "availabilityFailed": "在庫状況の更新に失敗しました",
+    "collapsePanel": "パネルを折りたたむ",
+    "expandPanel": "パネルを展開する"
   },
   "reports": {
     "title": "レポート",

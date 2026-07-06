@@ -255,7 +255,9 @@
     "waitTimeCleared": "Wait time cleared",
     "waitTimeFailed": "Failed to update wait time",
     "availabilityUpdated": "\"{{name}}\" marked as {{status}}",
-    "availabilityFailed": "Failed to update availability"
+    "availabilityFailed": "Failed to update availability",
+    "collapsePanel": "Collapse panel",
+    "expandPanel": "Expand panel"
   },
   "reports": {
     "title": "Reports",
