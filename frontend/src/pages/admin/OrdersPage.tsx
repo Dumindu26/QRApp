@@ -8,6 +8,7 @@ import type { Order, OrderStatus } from '../../types';
 import { orderService } from '../../services/orderService';
 import { waiterService, type Waiter } from '../../services/waiterService';
 import { OrderCard } from '../../components/OrderCard';
+import { BillDetailPanel } from '../../components/BillDetailPanel';
 import { AddItemsModal } from '../../components/AddItemsModal';
 import { restaurantService, type RestaurantSettings } from '../../services/restaurantService';
 import toast from 'react-hot-toast';
@@ -577,22 +578,18 @@ export function OrdersPage() {
             </div>
 
             {/* Detail panel */}
-            <div className="w-[400px] lg:w-[460px] shrink-0 overflow-y-auto border-l border-gray-200 bg-white px-4 py-4">
+            <div className="w-[400px] lg:w-[460px] shrink-0 flex flex-col overflow-hidden border-l border-gray-200 bg-white">
               {selectedOrderId ? (
                 (() => {
                   const order = displayed.find((o) => o.id === selectedOrderId);
-                  if (!order) return <p className="text-gray-300 text-sm">Order not found</p>;
+                  if (!order) return <p className="text-gray-300 text-sm px-4 py-4">Order not found</p>;
                   return (
-                    <OrderCard
+                    <BillDetailPanel
                       order={order}
                       onStatusChange={handleStatusChange}
-                      onAssignWaiter={handleAssignWaiter}
-                      onAddItems={setAddItemsOrder}
-                      onCancel={handleCancel}
-                      onRemoveItem={handleRemoveItem}
-                      onUpdateItemQty={handleUpdateItemQty}
-                      waiters={waiters}
-                      showActions showBill settings={settings}
+                      settings={settings}
+                      onPaid={handleSessionPaid}
+                      onSessionClosed={handleSessionClosed}
                     />
                   );
                 })()
@@ -699,25 +696,19 @@ export function OrdersPage() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-4">
+            <div className="flex-1 flex flex-col overflow-hidden bg-white">
               {selectedOrderId ? (
                 (() => {
                   const order = displayed.find((o) => o.id === selectedOrderId);
-                  if (!order) return <p className="text-gray-300 text-sm">Order not found</p>;
+                  if (!order) return <p className="text-gray-300 text-sm px-4 py-4">Order not found</p>;
                   return (
-                    <div className="w-full">
-                      <OrderCard
-                        order={order}
-                        onStatusChange={handleStatusChange}
-                        onAssignWaiter={handleAssignWaiter}
-                        onAddItems={setAddItemsOrder}
-                        onCancel={handleCancel}
-                        onRemoveItem={handleRemoveItem}
-                        onUpdateItemQty={handleUpdateItemQty}
-                        waiters={waiters}
-                        showActions showBill settings={settings} onPaid={handleSessionPaid} onSessionClosed={handleSessionClosed}
-                      />
-                    </div>
+                    <BillDetailPanel
+                      order={order}
+                      onStatusChange={handleStatusChange}
+                      settings={settings}
+                      onPaid={handleSessionPaid}
+                      onSessionClosed={handleSessionClosed}
+                    />
                   );
                 })()
               ) : (
