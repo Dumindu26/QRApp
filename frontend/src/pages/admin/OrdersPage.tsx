@@ -240,68 +240,93 @@ export function OrdersPage() {
         </button>
       </AdminHeader>
       <div className="bg-white shadow-sm sticky top-0 z-30">
-        {/* Level 1 — order type */}
-        <div className="px-3 sm:px-4 lg:px-6 pt-3 pb-2 flex items-center gap-2 border-b border-gray-100">
-          <div className="flex gap-1.5 overflow-x-auto flex-1">
+        {/* Level 1 — order type (compact underline tabs) */}
+        <div className="flex items-center border-b border-gray-100">
+          <div className="flex flex-1">
             {TYPE_TABS.map((tt) => {
               const count =
-                tt.value === 'all'          ? orders.filter((o) => o.status !== 'cancelled').length
-                : tt.value === 'dine-in'    ? orders.filter((o) => o.orderType !== 'takeaway' && o.orderType !== 'room-service' && o.status !== 'cancelled').length
-                : tt.value === 'takeaway'   ? orders.filter((o) => o.orderType === 'takeaway'     && o.status !== 'cancelled').length
-                : orders.filter((o) => o.orderType === 'room-service' && o.status !== 'cancelled').length;
+                tt.value === 'all'
+                  ? orders.filter((o) => o.status !== 'cancelled').length
+                  : tt.value === 'dine-in'
+                  ? orders.filter((o) => o.orderType !== 'takeaway' && o.orderType !== 'room-service' && o.status !== 'cancelled').length
+                  : tt.value === 'takeaway'
+                  ? orders.filter((o) => o.orderType === 'takeaway' && o.status !== 'cancelled').length
+                  : orders.filter((o) => o.orderType === 'room-service' && o.status !== 'cancelled').length;
               const active = typeTab === tt.value;
               return (
                 <button
                   key={tt.value}
                   onClick={() => setTypeTab(tt.value)}
-                  className={`shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
-                    active
-                      ? tt.value === 'takeaway'     ? 'bg-purple-600 text-white'
-                      : tt.value === 'room-service' ? 'bg-blue-600 text-white'
-                      : 'bg-orange-500 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  className={`relative flex flex-col items-center justify-center flex-1 py-2.5 gap-0.5 transition-colors ${
+                    active ? 'text-emerald-700' : 'text-gray-400 hover:text-gray-600'
                   }`}
                 >
-                  {tt.label}
-                  {count !== null && (
-                    <span className="ml-1.5 text-xs opacity-80">({count})</span>
+                  <span className="text-[11px] font-semibold leading-none">{tt.label}</span>
+                  <span className={`text-[11px] font-bold tabular-nums leading-none ${active ? 'text-emerald-600' : 'text-gray-300'}`}>
+                    {count}
+                  </span>
+                  {active && (
+                    <span className="absolute bottom-0 left-[12%] right-[12%] h-[2.5px] rounded-full bg-emerald-600" />
                   )}
                 </button>
               );
             })}
           </div>
-          <Link
-            to="/admin/new-order"
-            className="flex items-center gap-1.5 bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-orange-600 transition-colors shrink-0"
-          >
-            <Plus size={15} /> New
-          </Link>
+          <div className="px-3 shrink-0">
+            <Link
+              to="/admin/new-order"
+              className="flex items-center gap-1.5 bg-emerald-600 text-white px-3 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors"
+            >
+              <Plus size={15} /> New
+            </Link>
+          </div>
         </div>
 
-        {/* Level 2 — order status */}
-        <div className="px-3 sm:px-4 lg:px-6 py-2 flex gap-1.5 overflow-x-auto border-b border-gray-100">
-          {STATUS_CHIPS.map((sc) => {
-            const count = sc.value === 'all' ? null : byType.filter((o) => o.status === sc.value).length;
-            const active = statusTab === sc.value;
-            return (
-              <button
-                key={sc.value}
-                onClick={() => setStatusTab(sc.value)}
-                className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-                  active
-                    ? sc.value === 'ready'     ? 'bg-green-500 text-white'
-                    : sc.value === 'preparing' ? 'bg-blue-500 text-white'
-                    : sc.value === 'pending'   ? 'bg-yellow-500 text-white'
-                    : sc.value === 'cancelled' ? 'bg-red-500 text-white'
-                    : 'bg-gray-800 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {sc.label}
-                {count !== null && <span className="ml-1 opacity-75">({count})</span>}
-              </button>
-            );
-          })}
+        {/* Level 2 — order status (scrollable tiles with dot + label + count) */}
+        <div className="relative border-b border-gray-100">
+          <div className="flex gap-1.5 overflow-x-auto py-2 pl-3 sm:pl-4 lg:pl-6 pr-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {STATUS_CHIPS.map((sc) => {
+              const count = sc.value === 'all'
+                ? byType.filter((o) => o.status !== 'cancelled').length
+                : byType.filter((o) => o.status === sc.value).length;
+              const active = statusTab === sc.value;
+              const dotColor =
+                sc.value === 'pending'   ? 'bg-amber-500'
+                : sc.value === 'preparing' ? 'bg-blue-500'
+                : sc.value === 'ready'     ? 'bg-green-500'
+                : sc.value === 'cancelled' ? 'bg-red-400'
+                : '';
+              const activeCls =
+                sc.value === 'all'       ? 'bg-gray-900 border-gray-800 text-white'
+                : sc.value === 'pending'   ? 'bg-amber-50 border-amber-400 text-amber-700'
+                : sc.value === 'preparing' ? 'bg-blue-50 border-blue-500 text-blue-700'
+                : sc.value === 'ready'     ? 'bg-green-50 border-green-500 text-green-700'
+                :                           'bg-red-50 border-red-400 text-red-600';
+              const countCls = active
+                ? sc.value === 'all'       ? 'text-white/60'
+                : sc.value === 'pending'   ? 'text-amber-600'
+                : sc.value === 'preparing' ? 'text-blue-600'
+                : sc.value === 'ready'     ? 'text-green-600'
+                :                           'text-red-500'
+                : 'text-gray-800';
+              return (
+                <button
+                  key={sc.value}
+                  onClick={() => setStatusTab(sc.value)}
+                  className={`flex flex-col items-center justify-center gap-1 min-w-[54px] h-[52px] px-2.5 rounded-xl border-[1.5px] shrink-0 transition-all active:scale-95 ${
+                    active ? activeCls : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                  }`}
+                >
+                  {sc.value !== 'all' && (
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
+                  )}
+                  <span className="text-[10px] font-semibold leading-none whitespace-nowrap">{sc.label}</span>
+                  <span className={`text-sm font-extrabold leading-none tabular-nums ${countCls}`}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-r from-transparent to-white" />
         </div>
 
         {/* Search */}
