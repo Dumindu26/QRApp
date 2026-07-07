@@ -18,28 +18,26 @@ export interface AuditEntry {
  * Persist an audit-log row. Fire-and-forget: failures are logged but never
  * propagate, so auditing can't break the action being recorded.
  */
-export async function recordAudit(entry: AuditEntry): Promise<void> {
-  try {
-    await pool.query(
-      `INSERT INTO audit_logs
-         (restaurant_id, user_id, user_name, user_role, action, entity_type, entity_id, summary, ip, created_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-      [
-        entry.restaurantId ?? null,
-        entry.userId ?? null,
-        entry.userName ?? '',
-        entry.userRole ?? '',
-        entry.action,
-        entry.entityType ?? null,
-        entry.entityId ?? null,
-        (entry.summary ?? '').slice(0, 500),
-        entry.ip ?? null,
-        new Date().toISOString(),
-      ],
-    );
-  } catch (e) {
-    console.error('[audit] failed to record', entry.action, (e as Error).message);
-  }
+export function recordAudit(entry: AuditEntry): void {
+  pool.query(
+    `INSERT INTO audit_logs
+       (restaurant_id, user_id, user_name, user_role, action, entity_type, entity_id, summary, ip, created_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+    [
+      entry.restaurantId ?? null,
+      entry.userId ?? null,
+      entry.userName ?? '',
+      entry.userRole ?? '',
+      entry.action,
+      entry.entityType ?? null,
+      entry.entityId ?? null,
+      (entry.summary ?? '').slice(0, 500),
+      entry.ip ?? null,
+      new Date().toISOString(),
+    ],
+  ).catch((e: Error) => {
+    console.error('[audit] failed to record', entry.action, e.message);
+  });
 }
 
 /** Extract the best-effort client IP from a request. */
