@@ -24,6 +24,19 @@ services:
         name: Cache-Control
         value: public, max-age=31536000, immutable
     routes:
+      # Static files in public/ — serve directly, don't rewrite to index.html
+      - type: rewrite
+        source: /*.png
+        destination: /*.png
+      - type: rewrite
+        source: /*.svg
+        destination: /*.svg
+      - type: rewrite
+        source: /*.ico
+        destination: /*.ico
+      - type: rewrite
+        source: /*.webmanifest
+        destination: /*.webmanifest
       # SPA fallback — all non-asset routes serve index.html
       - type: rewrite
         source: /*
