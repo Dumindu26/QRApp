@@ -108,6 +108,7 @@ export function ReservationsPage({ embedded = false }: { embedded?: boolean }) {
 
   function openNew(prefillDate?: string) { setForm(emptyForm(prefillDate ?? date)); setShowForm(true); }
   function openEdit(r: Reservation) {
+    if (new Date(r.reservedAt).getTime() < Date.now()) { toast.error('Past reservations can\'t be edited'); return; }
     setForm({ id: r.id, type: r.type, tableId: r.tableId ?? '', roomId: r.roomId ?? '', customerName: r.customerName, customerPhone: r.customerPhone ?? '', partySize: String(r.partySize), reservedAt: toLocalInput(r.reservedAt), notes: r.notes ?? '' });
     setShowForm(true);
   }
@@ -116,7 +117,7 @@ export function ReservationsPage({ embedded = false }: { embedded?: boolean }) {
     if (!form.customerName.trim()) { toast.error('Customer name is required'); return; }
     if (form.type === 'table' && !form.tableId) { toast.error('Select a table'); return; }
     if (form.type === 'room' && !form.roomId) { toast.error('Select a room'); return; }
-    if (!form.id && new Date(form.reservedAt).getTime() < Date.now()) { toast.error('Reservation date & time cannot be in the past'); return; }
+    if (new Date(form.reservedAt).getTime() < Date.now()) { toast.error('Reservation date & time cannot be in the past'); return; }
     setSaving(true);
     const payload = {
       type: form.type,
