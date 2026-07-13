@@ -47,7 +47,7 @@ const emptyForm = (date: string): FormState => {
   const now = nowLocalInput();
   return {
     id: null, type: 'table', tableId: '', roomId: '', customerName: '', customerPhone: '', partySize: '2',
-    reservedAt: date === todayStr() && now > defaultAt ? now : defaultAt, notes: '',
+    reservedAt: defaultAt < now ? now : defaultAt, notes: '',
   };
 };
 
@@ -116,6 +116,7 @@ export function ReservationsPage({ embedded = false }: { embedded?: boolean }) {
     if (!form.customerName.trim()) { toast.error('Customer name is required'); return; }
     if (form.type === 'table' && !form.tableId) { toast.error('Select a table'); return; }
     if (form.type === 'room' && !form.roomId) { toast.error('Select a room'); return; }
+    if (!form.id && new Date(form.reservedAt).getTime() < Date.now()) { toast.error('Reservation date & time cannot be in the past'); return; }
     setSaving(true);
     const payload = {
       type: form.type,
