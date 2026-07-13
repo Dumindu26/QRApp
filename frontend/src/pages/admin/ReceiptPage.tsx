@@ -47,16 +47,20 @@ export function ReceiptPage() {
   const fmtAmt = (n: number) => `${sym}${n.toFixed(2)}`;
 
   // Use stored SC/tax amounts when available (new orders); fall back to re-computation for old orders
+  const deliveryFee = order.orderType === 'delivery' ? (order.deliveryFee ?? 0) : 0;
   const hasStoredCharges = (order.taxAmount ?? 0) > 0 || (order.serviceChargeAmount ?? 0) > 0;
   const subtotal = hasStoredCharges
-    ? order.totalAmount - (order.taxAmount ?? 0) - (order.serviceChargeAmount ?? 0) + (order.discountAmount ?? 0)
-    : order.totalAmount + (order.discountAmount ?? 0);
+    ? order.totalAmount - (order.taxAmount ?? 0) - (order.serviceChargeAmount ?? 0) - deliveryFee + (order.discountAmount ?? 0)
+    : order.totalAmount - deliveryFee + (order.discountAmount ?? 0);
   const charges = hasStoredCharges
     ? { serviceCharge: order.serviceChargeAmount ?? 0, tax: order.taxAmount ?? 0, grandTotal: order.totalAmount }
-    : computeCharges(subtotal - (order.discountAmount ?? 0), {
-        serviceChargePct: order.orderType === 'dine-in' ? (settings?.serviceChargePct ?? 0) : 0,
-        taxPct:           settings?.taxPct ?? 0,
-      });
+    : (() => {
+        const c = computeCharges(subtotal - (order.discountAmount ?? 0), {
+          serviceChargePct: order.orderType === 'dine-in' ? (settings?.serviceChargePct ?? 0) : 0,
+          taxPct:           settings?.taxPct ?? 0,
+        });
+        return { ...c, grandTotal: c.grandTotal + deliveryFee };
+      })();
   const scName  = settings?.serviceChargeName ?? 'Service Charge';
   const taxName = settings?.taxName           ?? 'Tax';
 
@@ -143,7 +147,7 @@ export function ReceiptPage() {
         )}
         <Line />
 
-        <p className="center bold">{order.orderType === 'takeaway' ? 'TAKEAWAY' : 'DINING BILL'}</p>
+        <p className="center bold">{order.orderType === 'delivery' ? 'DELIVERY' : order.orderType === 'takeaway' ? 'TAKEAWAY' : 'DINING BILL'}</p>
         <Line char=" " />
 
         <div className="row">
@@ -157,9 +161,14 @@ export function ReceiptPage() {
             <span>Table:</span><span>{order.tableNumber}</span>
           </div>
         )}
-        {order.orderType === 'takeaway' && order.customerName && (
+        {(order.orderType === 'takeaway' || order.orderType === 'delivery') && order.customerName && (
           <div className="row">
             <span>Name:</span><span>{order.customerName}</span>
+          </div>
+        )}
+        {order.orderType === 'delivery' && order.deliveryAddress && (
+          <div className="row">
+            <span>Address:</span><span style={{ textAlign: 'right' }}>{order.deliveryAddress}</span>
           </div>
         )}
         {order.orderNumber && settings?.receiptShowOrderNo !== false && (
@@ -225,6 +234,12 @@ export function ReceiptPage() {
           <div className="row">
             <span>{taxName}{!hasStoredCharges ? ` (${settings?.taxPct}%)` : ''}</span>
             <span>{fmtAmt(charges.tax)}</span>
+          </div>
+        )}
+        {deliveryFee > 0 && (
+          <div className="row">
+            <span>Delivery Fee</span>
+            <span>{fmtAmt(deliveryFee)}</span>
           </div>
         )}
         <Line />

@@ -8,6 +8,7 @@ import type { Order, OrderStatus } from '../../types';
 import { orderService } from '../../services/orderService';
 import { waiterService, type Waiter } from '../../services/waiterService';
 import { OrderCard } from '../../components/OrderCard';
+import { StatusBadge } from '../../components/StatusBadge';
 import { BillDetailPanel } from '../../components/BillDetailPanel';
 import { AddItemsModal } from '../../components/AddItemsModal';
 import { restaurantService, type RestaurantSettings } from '../../services/restaurantService';
@@ -21,7 +22,7 @@ import { EmptyState } from '../../components/EmptyState';
 export function OrdersPage() {
   const { t } = useTranslation();
 
-  type TypeTab   = 'all' | 'dine-in' | 'takeaway' | 'room-service';
+  type TypeTab   = 'all' | 'dine-in' | 'takeaway' | 'room-service' | 'delivery';
   type StatusTab = 'all' | OrderStatus;
 
   const TYPE_TABS: { label: string; value: TypeTab }[] = [
@@ -29,14 +30,7 @@ export function OrdersPage() {
     { label: 'Dining',   value: 'dine-in'      },
     { label: 'Takeaway', value: 'takeaway'     },
     { label: 'Room',     value: 'room-service' },
-  ];
-
-  const STATUS_CHIPS: { label: string; value: StatusTab }[] = [
-    { label: 'All',       value: 'all'       },
-    { label: 'Pending',   value: 'pending'   },
-    { label: 'Preparing', value: 'preparing' },
-    { label: 'Ready',     value: 'ready'     },
-    { label: 'Cancelled', value: 'cancelled' },
+    { label: 'Delivery', value: 'delivery'     },
   ];
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -44,6 +38,20 @@ export function OrdersPage() {
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
   const [typeTab,   setTypeTab]   = useState<TypeTab>('all');
   const [statusTab, setStatusTab] = useState<StatusTab>('all');
+
+  // Out for Delivery / Delivered only make sense once a delivery order is in view
+  const showDeliveryStatuses = typeTab === 'delivery' || typeTab === 'all';
+  const STATUS_CHIPS: { label: string; value: StatusTab }[] = [
+    { label: 'All',       value: 'all'       },
+    { label: 'Pending',   value: 'pending'   },
+    { label: 'Preparing', value: 'preparing' },
+    { label: 'Ready',     value: 'ready'     },
+    ...(showDeliveryStatuses ? [
+      { label: 'Out for Delivery', value: 'out-for-delivery' as StatusTab },
+      { label: 'Delivered',        value: 'delivered'        as StatusTab },
+    ] : []),
+    { label: 'Cancelled', value: 'cancelled' },
+  ];
   const [loading, setLoading] = useState(true);
   const [addItemsOrder, setAddItemsOrder] = useState<Order | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -135,9 +143,10 @@ export function OrdersPage() {
   }
 
   const byType = orders.filter((o) => {
-    if (typeTab === 'dine-in')      return o.orderType !== 'takeaway' && o.orderType !== 'room-service';
+    if (typeTab === 'dine-in')      return o.orderType !== 'takeaway' && o.orderType !== 'room-service' && o.orderType !== 'delivery';
     if (typeTab === 'takeaway')     return o.orderType === 'takeaway';
     if (typeTab === 'room-service') return o.orderType === 'room-service';
+    if (typeTab === 'delivery')     return o.orderType === 'delivery';
     return true;
   });
 
@@ -153,6 +162,7 @@ export function OrdersPage() {
           (o.tableNumber != null ? `table ${o.tableNumber}` : '').includes(q) ||
           (o.roomNumber  != null ? `room ${o.roomNumber}`   : '').includes(q) ||
           (o.orderType === 'takeaway' && 'takeaway'.includes(q)) ||
+          (o.orderType === 'delivery' && ('delivery'.includes(q) || (o.deliveryAddress ?? '').toLowerCase().includes(q))) ||
           (o.customerName ?? '').toLowerCase().includes(q)
         );
       })
@@ -160,8 +170,9 @@ export function OrdersPage() {
 
   const orderGroups = [
     { key: 'takeaway',     label: 'Takeaway',     dot: 'bg-purple-400', orders: displayed.filter((o) => o.orderType === 'takeaway') },
-    { key: 'dine-in',      label: 'Dine In',      dot: 'bg-orange-400', orders: displayed.filter((o) => o.orderType !== 'takeaway' && o.orderType !== 'room-service') },
+    { key: 'dine-in',      label: 'Dine In',      dot: 'bg-orange-400', orders: displayed.filter((o) => o.orderType !== 'takeaway' && o.orderType !== 'room-service' && o.orderType !== 'delivery') },
     { key: 'room-service', label: 'Room Service',  dot: 'bg-blue-400',   orders: displayed.filter((o) => o.orderType === 'room-service') },
+    { key: 'delivery',     label: 'Delivery',      dot: 'bg-teal-400',   orders: displayed.filter((o) => o.orderType === 'delivery') },
   ].filter((g) => g.orders.length > 0);
   // For single-type tabs, group by status; for 'all' tab, group by order type
   const statusGroups = [
@@ -249,10 +260,12 @@ export function OrdersPage() {
                 tt.value === 'all'
                   ? orders.filter((o) => o.status !== 'cancelled').length
                   : tt.value === 'dine-in'
-                  ? orders.filter((o) => o.orderType !== 'takeaway' && o.orderType !== 'room-service' && o.status !== 'cancelled').length
+                  ? orders.filter((o) => o.orderType !== 'takeaway' && o.orderType !== 'room-service' && o.orderType !== 'delivery' && o.status !== 'cancelled').length
                   : tt.value === 'takeaway'
                   ? orders.filter((o) => o.orderType === 'takeaway' && o.status !== 'cancelled').length
-                  : orders.filter((o) => o.orderType === 'room-service' && o.status !== 'cancelled').length;
+                  : tt.value === 'room-service'
+                  ? orders.filter((o) => o.orderType === 'room-service' && o.status !== 'cancelled').length
+                  : orders.filter((o) => o.orderType === 'delivery' && o.status !== 'cancelled').length;
               const active = typeTab === tt.value;
               return (
                 <button
@@ -295,6 +308,8 @@ export function OrdersPage() {
                 sc.value === 'pending'   ? 'bg-amber-500'
                 : sc.value === 'preparing' ? 'bg-blue-500'
                 : sc.value === 'ready'     ? 'bg-green-500'
+                : sc.value === 'out-for-delivery' ? 'bg-teal-500'
+                : sc.value === 'delivered' ? 'bg-emerald-600'
                 : sc.value === 'cancelled' ? 'bg-red-400'
                 : '';
               const activeCls =
@@ -302,12 +317,16 @@ export function OrdersPage() {
                 : sc.value === 'pending'   ? 'bg-amber-50 border-amber-400 text-amber-700'
                 : sc.value === 'preparing' ? 'bg-blue-50 border-blue-500 text-blue-700'
                 : sc.value === 'ready'     ? 'bg-green-50 border-green-500 text-green-700'
+                : sc.value === 'out-for-delivery' ? 'bg-teal-50 border-teal-500 text-teal-700'
+                : sc.value === 'delivered' ? 'bg-emerald-50 border-emerald-600 text-emerald-700'
                 :                           'bg-red-50 border-red-400 text-red-600';
               const countCls = active
                 ? sc.value === 'all'       ? 'text-white/60'
                 : sc.value === 'pending'   ? 'text-amber-600'
                 : sc.value === 'preparing' ? 'text-blue-600'
                 : sc.value === 'ready'     ? 'text-green-600'
+                : sc.value === 'out-for-delivery' ? 'text-teal-600'
+                : sc.value === 'delivered' ? 'text-emerald-700'
                 :                           'text-red-500'
                 : 'text-gray-800';
               return (
@@ -637,12 +656,7 @@ export function OrdersPage() {
                                 <span className="text-sm font-semibold text-gray-900 truncate">
                                   {order.orderNumber ?? 'Order'}
                                 </span>
-                                <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${
-                                  order.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
-                                  order.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
-                                  order.status === 'ready'     ? 'bg-green-100 text-green-700' :
-                                  'bg-red-100 text-red-600'
-                                }`}>{order.status}</span>
+                                <StatusBadge status={order.status} />
                               </div>
                               <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
                                 <span>

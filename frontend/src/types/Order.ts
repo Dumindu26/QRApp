@@ -1,5 +1,5 @@
-export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'cancelled' | 'paid';
-export type OrderType   = 'dine-in' | 'takeaway' | 'room-service';
+export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'out-for-delivery' | 'delivered' | 'cancelled' | 'paid';
+export type OrderType   = 'dine-in' | 'takeaway' | 'room-service' | 'delivery';
 
 export interface SelectedTopping {
   id: string;
@@ -63,6 +63,9 @@ export interface Order {
   promoCode?: string | null;
   paymentMethod?: string | null;
   customerPhone?: string | null;
+  deliveryAddress?: string | null;
+  deliveryFee?: number;
+  deliveryNotes?: string | null;
   assignedWaiterId?: string | null;
   assignedWaiterName?: string | null;
   rating?: number | null;

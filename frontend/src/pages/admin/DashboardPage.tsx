@@ -129,11 +129,13 @@ export function DashboardPage() {
   // Order types breakdown
   const dineIn   = todayOrders.filter((o) => o.orderType === 'dine-in').length;
   const takeaway = todayOrders.filter((o) => o.orderType === 'takeaway').length;
-  const room     = todayOrders.filter((o) => o.orderType !== 'dine-in' && o.orderType !== 'takeaway').length;
+  const room     = todayOrders.filter((o) => o.orderType === 'room-service').length;
+  const delivery = todayOrders.filter((o) => o.orderType === 'delivery').length;
   const orderTypeData = [
     { name: 'Dine-in',    value: dineIn,   color: '#2a7344' },
     { name: 'Take-away',  value: takeaway, color: '#3b82f6' },
     { name: 'Room',       value: room,     color: '#8b5cf6' },
+    { name: 'Delivery',   value: delivery, color: '#0d9488' },
   ].filter((d) => d.value > 0);
 
   // Top categories (up to 3)

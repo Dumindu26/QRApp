@@ -99,16 +99,19 @@ export function OrderBillPage() {
 
   const isRoom      = order.orderType === 'room-service';
   const isTakeaway  = order.orderType === 'takeaway';
-  const typeLabel   = isRoom ? 'Room Service Receipt' : 'Takeaway Receipt';
+  const isDelivery  = order.orderType === 'delivery';
+  const typeLabel   = isRoom ? 'Room Service Receipt' : isDelivery ? 'Delivery Receipt' : 'Takeaway Receipt';
 
   const itemsSubtotal = order.totalAmount
     - (order.taxAmount ?? 0)
     - (order.serviceChargeAmount ?? 0)
+    - (order.deliveryFee ?? 0)
     + (order.discountAmount ?? 0);
 
   const hasCharges = (order.discountAmount ?? 0) > 0
     || (order.taxAmount ?? 0) > 0
-    || (order.serviceChargeAmount ?? 0) > 0;
+    || (order.serviceChargeAmount ?? 0) > 0
+    || (order.deliveryFee ?? 0) > 0;
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-8 px-4">
@@ -134,6 +137,9 @@ export function OrderBillPage() {
             <p className="text-xs font-bold tracking-widest text-gray-500 uppercase">{typeLabel}</p>
             {isRoom && order.roomNumber && (
               <p className="text-xs text-gray-400 mt-0.5">Room {order.roomNumber}</p>
+            )}
+            {isDelivery && order.deliveryAddress && (
+              <p className="text-xs text-gray-400 mt-0.5">{order.deliveryAddress}</p>
             )}
             {isTakeaway && order.customerName && (
               <p className="text-xs text-gray-400 mt-0.5">{order.customerName}</p>
@@ -210,6 +216,12 @@ export function OrderBillPage() {
                 <div className="flex justify-between text-gray-600">
                   <span>{info?.taxName ?? 'Tax'}</span>
                   <span className="tabular-nums">{fmt(order.taxAmount ?? 0)}</span>
+                </div>
+              )}
+              {(order.deliveryFee ?? 0) > 0 && (
+                <div className="flex justify-between text-gray-600">
+                  <span>Delivery Fee</span>
+                  <span className="tabular-nums">{fmt(order.deliveryFee ?? 0)}</span>
                 </div>
               )}
               <Divider />

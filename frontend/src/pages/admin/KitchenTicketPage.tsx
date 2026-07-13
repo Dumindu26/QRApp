@@ -35,6 +35,7 @@ export function KitchenTicketPage() {
   function locationLine(): string {
     if (order!.orderType === 'room-service') return `ROOM  ${order!.roomNumber ?? ' - '}`;
     if (order!.orderType === 'takeaway')     return `TAKEAWAY${order!.customerName ? `   .   ${order!.customerName.toUpperCase()}` : ''}`;
+    if (order!.orderType === 'delivery')     return `DELIVERY${order!.customerName ? `   .   ${order!.customerName.toUpperCase()}` : ''}`;
     return `TABLE  ${order!.tableNumber ?? ' - '}`;
   }
 

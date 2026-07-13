@@ -8,7 +8,7 @@ import { autoPrintKitchen } from '../services/printerService';
 import { recordAudit, auditFromReq } from '../lib/audit';
 
 const router = Router();
-type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
+type OrderStatus = 'pending' | 'preparing' | 'ready' | 'out-for-delivery' | 'delivered' | 'served' | 'cancelled';
 
 interface SelectedTopping { id: string; name: string; price: number; }
 interface SelectedModifier { groupName: string; optionId: string; optionName: string; price: number; }
@@ -80,6 +80,9 @@ function mapOrderRow(o: Record<string, unknown>, itemRows: Record<string, unknow
     promoCode: (o.promo_code as string | null) ?? null,
     paymentMethod: (o.payment_method as string | null) ?? null,
     customerPhone: (o.customer_phone as string | null) ?? null,
+    deliveryAddress: (o.delivery_address as string | null) ?? null,
+    deliveryFee: Number(o.delivery_fee ?? 0),
+    deliveryNotes: (o.delivery_notes as string | null) ?? null,
     assignedWaiterId: (o.assigned_waiter_id as string | null) ?? null,
     assignedWaiterName: (o.assigned_waiter_name as string | null) ?? null,
     rating: o.rating != null ? Number(o.rating) : null,
@@ -160,11 +163,13 @@ router.get('/:id', async (req, res) => {
 });
 
 router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
-  const { tableId, tableNumber, roomId, roomNumber, items, sessionId, restaurantId, orderType = 'dine-in', customerName, customerPhone, paymentMethod: initialPaymentMethod } =
-    req.body as { tableId?: string; tableNumber?: number; roomId?: string; roomNumber?: number; items: CartItem[]; sessionId?: string; restaurantId?: string; orderType?: 'dine-in' | 'takeaway' | 'room-service'; customerName?: string; customerPhone?: string; paymentMethod?: string; };
+  const { tableId, tableNumber, roomId, roomNumber, items, sessionId, restaurantId, orderType = 'dine-in', customerName, customerPhone, paymentMethod: initialPaymentMethod, deliveryAddress, deliveryFee, deliveryNotes } =
+    req.body as { tableId?: string; tableNumber?: number; roomId?: string; roomNumber?: number; items: CartItem[]; sessionId?: string; restaurantId?: string; orderType?: 'dine-in' | 'takeaway' | 'room-service' | 'delivery'; customerName?: string; customerPhone?: string; paymentMethod?: string; deliveryAddress?: string; deliveryFee?: number; deliveryNotes?: string; };
   if (!items?.length) { res.status(400).json({ error: 'items are required' }); return; }
   if (orderType === 'dine-in' && !tableId) { res.status(400).json({ error: 'tableId is required for dine-in orders' }); return; }
   if (orderType === 'room-service' && !roomId) { res.status(400).json({ error: 'roomId is required for room-service orders' }); return; }
+  if (orderType === 'delivery' && !deliveryAddress?.trim()) { res.status(400).json({ error: 'deliveryAddress is required for delivery orders' }); return; }
+  if (orderType === 'delivery' && !customerPhone?.trim()) { res.status(400).json({ error: 'customerPhone is required for delivery orders' }); return; }
   const resolvedRestaurantId = req.user?.restaurantId ?? restaurantId;
   if (!resolvedRestaurantId) { res.status(400).json({ error: 'restaurantId is required' }); return; }
 
@@ -286,7 +291,8 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
       ? Math.round(taxableAmount * scPct  / 100 * 100) / 100
       : 0;
     const taxAmount = Math.round((taxableAmount + serviceChargeAmount) * taxPct / 100 * 100) / 100;
-    totalAmount = taxableAmount + serviceChargeAmount + taxAmount;
+    const deliveryFeeAmount = orderType === 'delivery' ? Math.max(0, Number(deliveryFee) || 0) : 0;
+    totalAmount = taxableAmount + serviceChargeAmount + taxAmount + deliveryFeeAmount;
 
     const seqRes = await client.query(
       `UPDATE restaurants SET next_order_seq = next_order_seq + 1 WHERE id = $1 RETURNING next_order_seq, order_number_prefix`,
@@ -297,9 +303,9 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
     const prefix = (seqRow.order_number_prefix as string | null) ?? 'ORD';
     const orderNumber = `${prefix}${String(seq).padStart(3, '0')}`;
     await client.query(
-      `INSERT INTO orders (id,restaurant_id,session_id,table_id,table_number,room_id,room_number,order_type,customer_name,customer_phone,status,total_amount,discount_amount,promo_code,order_number,payment_method,tax_amount,service_charge_amount,created_at,updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending',$11,$12,$13,$14,$15,$16,$17,$18,$18)`,
-      [orderId, resolvedRestaurantId, sessionId ?? null, tableId ?? null, tableNumber ?? null, roomId ?? null, roomNumber ?? null, orderType, customerName ?? null, customerPhone?.trim() || null, totalAmount, discountAmount, validatedPromoCode, orderNumber, initialPaymentMethod?.trim() || null, taxAmount, serviceChargeAmount, now],
+      `INSERT INTO orders (id,restaurant_id,session_id,table_id,table_number,room_id,room_number,order_type,customer_name,customer_phone,status,total_amount,discount_amount,promo_code,order_number,payment_method,tax_amount,service_charge_amount,delivery_address,delivery_fee,delivery_notes,created_at,updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending',$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$21)`,
+      [orderId, resolvedRestaurantId, sessionId ?? null, tableId ?? null, tableNumber ?? null, roomId ?? null, roomNumber ?? null, orderType, customerName ?? null, customerPhone?.trim() || null, totalAmount, discountAmount, validatedPromoCode, orderNumber, initialPaymentMethod?.trim() || null, taxAmount, serviceChargeAmount, deliveryAddress?.trim() || null, deliveryFeeAmount, deliveryNotes?.trim() || null, now],
     );
     // Increment promo code usage
     if (validatedPromoCode) {
@@ -433,7 +439,7 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
 
   const built = await buildOrder(orderId);
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
-  const label = orderType === 'takeaway' ? (customerName?.trim() ?? 'Takeaway') : orderType === 'room-service' ? (customerName?.trim() ?? `Room ${roomNumber}`) : tableNumber ?? 0;
+  const label = orderType === 'takeaway' ? (customerName?.trim() ?? 'Takeaway') : orderType === 'room-service' ? (customerName?.trim() ?? `Room ${roomNumber}`) : orderType === 'delivery' ? (customerName?.trim() ?? 'Delivery') : tableNumber ?? 0;
   sendPushToAll(resolvedRestaurantId, newOrderPayload(label as number, itemCount, totalAmount, orderId)).catch(() => {});
   autoPrintKitchen(resolvedRestaurantId, orderId);
 
@@ -461,7 +467,7 @@ router.post('/', optionalAuthenticate, async (req: AuthRequest, res) => {
 
 router.patch('/:id/status', authenticate, requireRole('admin', 'manager', 'cashier', 'waiter', 'kitchen'), async (req: AuthRequest, res) => {
   const { status, paymentMethod } = req.body as { status: OrderStatus; paymentMethod?: string };
-  if (!['pending', 'preparing', 'ready', 'paid'].includes(status)) { res.status(400).json({ error: 'Invalid status' }); return; }
+  if (!['pending', 'preparing', 'ready', 'out-for-delivery', 'delivered', 'paid'].includes(status)) { res.status(400).json({ error: 'Invalid status' }); return; }
   const now = new Date().toISOString();
   const rid = req.user!.restaurantId;
   // Stamp served_at the first time an order reaches 'ready'

@@ -20,6 +20,8 @@ interface Props {
 }
 
 const STATUS_FLOW: OrderStatus[] = ['pending', 'preparing', 'ready'];
+const DELIVERY_STATUS_FLOW: OrderStatus[] = ['pending', 'preparing', 'ready', 'out-for-delivery', 'delivered'];
+const STATUS_LABEL: Partial<Record<OrderStatus, string>> = { 'out-for-delivery': 'Out for Delivery' };
 
 export function BillDetailPanel({ order, onStatusChange, settings, onPaid }: Props) {
   const { fmt } = useCurrency();
@@ -143,10 +145,12 @@ export function BillDetailPanel({ order, onStatusChange, settings, onPaid }: Pro
 
   // ── Derived display data ────────────────────────────────────────────────────
   const isDineIn   = order.orderType === 'dine-in';
-  const typeLabel  = order.orderType === 'room-service' ? 'Room' : isDineIn ? 'Table' : 'Takeaway';
+  const isDelivery = order.orderType === 'delivery';
+  const typeLabel  = order.orderType === 'room-service' ? 'Room' : isDelivery ? 'Delivery' : isDineIn ? 'Table' : 'Takeaway';
   const typeNumber = order.orderType === 'room-service'
     ? order.roomNumber
     : isDineIn ? order.tableNumber : null;
+  const deliveryFee = isDelivery ? (order.deliveryFee ?? 0) : 0;
 
   const activeOrders = (liveSession?.orders ?? []).filter((o) => o.status !== 'cancelled');
 
@@ -161,7 +165,15 @@ export function BillDetailPanel({ order, onStatusChange, settings, onPaid }: Pro
     sessionStatus === 'pending'   ? 'bg-amber-50 text-amber-700 border-amber-200'  :
     sessionStatus === 'preparing' ? 'bg-blue-50 text-blue-700 border-blue-200'     :
     sessionStatus === 'ready'     ? 'bg-green-50 text-green-700 border-green-200'  :
+    sessionStatus === 'out-for-delivery' ? 'bg-teal-50 text-teal-700 border-teal-200' :
+    sessionStatus === 'delivered' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                                     'bg-gray-100 text-gray-500 border-gray-200';
+
+  // Delivery orders advance through two extra stages after Ready
+  const deliveryFlow    = isDelivery ? DELIVERY_STATUS_FLOW : null;
+  const deliveryCurIdx  = deliveryFlow ? deliveryFlow.indexOf(order.status as OrderStatus) : -1;
+  const deliveryNextStatus = deliveryFlow && deliveryCurIdx >= 0 ? deliveryFlow[deliveryCurIdx + 1] as OrderStatus | undefined : undefined;
+  const deliveryNextLabel  = deliveryNextStatus ? (STATUS_LABEL[deliveryNextStatus] ?? deliveryNextStatus) : undefined;
 
   const firstOrder = activeOrders[0];
 
@@ -207,10 +219,25 @@ export function BillDetailPanel({ order, onStatusChange, settings, onPaid }: Pro
                 #{order.orderNumber} · {fmtDate(order.createdAt)}
               </p>
             )}
+            {isDelivery && order.deliveryAddress && (
+              <p className="text-xs text-gray-400 mt-1">
+                {order.deliveryAddress}{order.customerPhone ? ` · ${order.customerPhone}` : ''}
+              </p>
+            )}
           </div>
-          <span className={`text-xs font-semibold px-3 py-1 rounded-full border capitalize mt-1 ${statusBadgeCls}`}>
-            {sessionStatus}
-          </span>
+          <div className="flex flex-col items-end gap-2 mt-1 shrink-0">
+            <span className={`text-xs font-semibold px-3 py-1 rounded-full border capitalize whitespace-nowrap ${statusBadgeCls}`}>
+              {STATUS_LABEL[sessionStatus] ?? sessionStatus}
+            </span>
+            {deliveryNextStatus && onStatusChange && (
+              <button
+                onClick={() => onStatusChange(order.id, deliveryNextStatus)}
+                className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full bg-teal-600 text-white hover:bg-teal-700 active:scale-95 transition-all whitespace-nowrap"
+              >
+                <ChevronRight size={12} /> Mark as {deliveryNextLabel}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* ── Live Orders (dine-in sessions only) ── */}
@@ -308,9 +335,15 @@ export function BillDetailPanel({ order, onStatusChange, settings, onPaid }: Pro
               <span className="tabular-nums">{fmt(charges.tax)}</span>
             </div>
           )}
+          {deliveryFee > 0 && (
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>Delivery Fee</span>
+              <span className="tabular-nums">{fmt(deliveryFee)}</span>
+            </div>
+          )}
           <div className="flex justify-between items-center pt-2 border-t border-gray-200">
             <span className="text-sm font-bold text-gray-800">Total</span>
-            <span className="text-2xl font-black text-gray-900 tabular-nums">{fmt(charges.grandTotal)}</span>
+            <span className="text-2xl font-black text-gray-900 tabular-nums">{fmt(charges.grandTotal + deliveryFee)}</span>
           </div>
         </div>
 
@@ -422,7 +455,7 @@ export function BillDetailPanel({ order, onStatusChange, settings, onPaid }: Pro
         <PaymentMethodModal
           title="Mark order as paid"
           subtitle={`#${order.orderNumber}`}
-          total={charges.grandTotal}
+          total={charges.grandTotal + deliveryFee}
           enabledMethods={settings?.enabledPaymentMethods}
           onConfirm={handlePayOrder}
           onClose={() => setShowPayOrder(false)}

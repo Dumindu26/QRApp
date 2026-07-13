@@ -19,6 +19,11 @@ export const orderService = {
       .post<Order>(`${BASE}/orders`, { roomId, roomNumber, items, orderType: 'room-service', customerName, restaurantId, promoCode, customerPhone, paymentMethod, redeemPoints })
       .then((r) => r.data),
 
+  placeDeliveryOrder: (items: CartItem[], deliveryAddress: string, customerPhone: string, customerName?: string, restaurantId?: string, promoCode?: string, deliveryFee?: number, deliveryNotes?: string, redeemPoints?: number) =>
+    axios
+      .post<Order>(`${BASE}/orders`, { items, orderType: 'delivery', deliveryAddress, customerPhone, customerName, restaurantId, promoCode, deliveryFee, deliveryNotes, redeemPoints })
+      .then((r) => r.data),
+
   getOrders: () => axios.get<Order[]>(`${BASE}/orders`).then((r) => r.data),
   getOrder:  (id: string) => axios.get<Order>(`${BASE}/orders/${id}`).then((r) => r.data),
   getOrdersByPhone: (phone: string) =>

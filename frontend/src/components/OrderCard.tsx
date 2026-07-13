@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { Order, OrderStatus } from '../types';
 import type { Waiter } from '../services/waiterService';
 import { StatusBadge } from './StatusBadge';
-import { Clock, MapPin, ShoppingBag, Printer, BedDouble, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star, PlusCircle, XCircle, Minus, Plus, Trash2, Download, Users, GitMerge, Loader2, Link2, Copy } from 'lucide-react';
+import { Clock, MapPin, ShoppingBag, Printer, BedDouble, Truck, UserCheck, CheckCircle2, Circle, MessageCircle, AlertTriangle, Star, PlusCircle, XCircle, Minus, Plus, Trash2, Download, Users, GitMerge, Loader2, Link2, Copy } from 'lucide-react';
 import { printService } from '../services/printService';
 import { computeCharges, type RestaurantSettings } from '../services/restaurantService';
 import { sessionService, type Session } from '../services/sessionService';
@@ -13,6 +13,8 @@ import toast from 'react-hot-toast';
 import { useCurrency } from '../context/CurrencyContext';
 
 const STATUS_FLOW: OrderStatus[] = ['pending', 'preparing', 'ready'];
+const DELIVERY_STATUS_FLOW: OrderStatus[] = ['pending', 'preparing', 'ready', 'out-for-delivery', 'delivered'];
+const STATUS_LABEL: Partial<Record<OrderStatus, string>> = { 'out-for-delivery': 'Out for Delivery' };
 const STALE_MINUTES = 30;
 
 interface Props {
@@ -45,8 +47,10 @@ interface Props {
 }
 
 export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, onCancel, onRemoveItem, onUpdateItemQty, onPaid, onSessionClosed, waiters, showActions = false, showPrint = false, showKitchenPrint = false, showBill = false, settings, isNext = false, priority, hidePrices = false, prepTimeMap, clockMs }: Props) {
-  const currentIdx = STATUS_FLOW.indexOf(order.status as OrderStatus);
-  const nextStatus = currentIdx >= 0 ? STATUS_FLOW[currentIdx + 1] as OrderStatus | undefined : undefined;
+  const statusFlow = order.orderType === 'delivery' ? DELIVERY_STATUS_FLOW : STATUS_FLOW;
+  const currentIdx = statusFlow.indexOf(order.status as OrderStatus);
+  const nextStatus = currentIdx >= 0 ? statusFlow[currentIdx + 1] as OrderStatus | undefined : undefined;
+  const nextStatusLabel = nextStatus ? (STATUS_LABEL[nextStatus] ?? nextStatus) : undefined;
   const { fmt } = useCurrency();
 
   const [liveSession, setLiveSession] = useState<Session | null>(null);
@@ -184,10 +188,11 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
 
   // â”€â”€ Bill charge breakdown (admin detail view) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Prefer stored SC/tax amounts; fall back to re-computation for older orders.
+  const cardDeliveryFee = order.orderType === 'delivery' ? (order.deliveryFee ?? 0) : 0;
   const hasStoredCharges = (order.taxAmount ?? 0) > 0 || (order.serviceChargeAmount ?? 0) > 0;
   const billGrossSubtotal = hasStoredCharges
-    ? order.totalAmount - (order.taxAmount ?? 0) - (order.serviceChargeAmount ?? 0) + (order.discountAmount ?? 0)
-    : order.totalAmount + (order.discountAmount ?? 0);
+    ? order.totalAmount - (order.taxAmount ?? 0) - (order.serviceChargeAmount ?? 0) - cardDeliveryFee + (order.discountAmount ?? 0)
+    : order.totalAmount - cardDeliveryFee + (order.discountAmount ?? 0);
   const billNet = billGrossSubtotal - (order.discountAmount ?? 0);
   const billCharges = hasStoredCharges
     ? { serviceCharge: order.serviceChargeAmount ?? 0, tax: order.taxAmount ?? 0, grandTotal: order.totalAmount }
@@ -195,7 +200,7 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
         serviceChargePct: order.orderType === 'dine-in' ? (settings?.serviceChargePct ?? 0) : 0,
         taxPct:           settings?.taxPct ?? 0,
       });
-  const hasBreakdown = (order.discountAmount ?? 0) > 0 || billCharges.serviceCharge > 0 || billCharges.tax > 0;
+  const hasBreakdown = (order.discountAmount ?? 0) > 0 || billCharges.serviceCharge > 0 || billCharges.tax > 0 || (order.deliveryFee ?? 0) > 0;
   const scName  = settings?.serviceChargeName ?? 'Service Charge';
   const taxName = settings?.taxName           ?? 'Tax';
 
@@ -261,6 +266,8 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
     ? { band: 'bg-purple-50', text: 'text-purple-700', icon: 'text-purple-500', Icon: ShoppingBag, label: 'Takeaway' }
     : order.orderType === 'room-service'
     ? { band: 'bg-blue-50',   text: 'text-blue-700',   icon: 'text-blue-500',   Icon: BedDouble,   label: `Room ${order.roomNumber}` }
+    : order.orderType === 'delivery'
+    ? { band: 'bg-teal-50',   text: 'text-teal-700',   icon: 'text-teal-500',   Icon: Truck,       label: 'Delivery' }
     : { band: 'bg-orange-50', text: 'text-orange-700', icon: 'text-orange-500', Icon: MapPin,      label: `Table ${order.tableNumber}` };
   const TypeIcon = theme.Icon;
 
@@ -334,6 +341,14 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
           )}
         </div>
       </div>
+
+      {/* Delivery address */}
+      {order.orderType === 'delivery' && order.deliveryAddress && (
+        <div className="px-4 pt-2 text-xs text-gray-500 flex items-start gap-1.5">
+          <MapPin size={12} className="text-teal-500 mt-0.5 shrink-0" />
+          <span>{order.deliveryAddress}{order.customerPhone ? ` · ${order.customerPhone}` : ''}</span>
+        </div>
+      )}
 
       {/* Items */}
       <ul className="px-4 pt-2 pb-2 space-y-1">
@@ -502,6 +517,12 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
                 <span className="tabular-nums">{fmt(billCharges.tax)}</span>
               </div>
             )}
+            {(order.deliveryFee ?? 0) > 0 && (
+              <div className="flex justify-between text-gray-500">
+                <span>Delivery Fee</span>
+                <span className="tabular-nums">{fmt(order.deliveryFee ?? 0)}</span>
+              </div>
+            )}
           </div>
         )}
         {/* Total / progress row */}
@@ -591,9 +612,13 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
           {showActions && onStatusChange && nextStatus && (
             <button
               onClick={() => onStatusChange(order.id, nextStatus)}
-              className="flex-1 min-w-[8rem] px-4 py-2 bg-orange-500 text-white text-sm rounded-xl font-bold hover:bg-orange-600 active:scale-95 transition-all capitalize whitespace-nowrap"
+              className={`flex-1 min-w-[8rem] px-4 py-2 text-white text-sm rounded-xl font-bold active:scale-95 transition-all capitalize whitespace-nowrap ${
+                nextStatus === 'out-for-delivery' || nextStatus === 'delivered'
+                  ? 'bg-teal-600 hover:bg-teal-700'
+                  : 'bg-orange-500 hover:bg-orange-600'
+              }`}
             >
-              Mark as {nextStatus}
+              Mark as {nextStatusLabel}
             </button>
           )}
         </div>
@@ -685,8 +710,8 @@ export function OrderCard({ order, onStatusChange, onAssignWaiter, onAddItems, o
               </button>
             </div>
 
-            {/* Mark as Paid — takeaway / room-service */}
-            {(order.orderType === 'takeaway' || order.orderType === 'room-service') && (
+            {/* Mark as Paid — takeaway / room-service / delivery */}
+            {(order.orderType === 'takeaway' || order.orderType === 'room-service' || order.orderType === 'delivery') && (
               <div className="mt-3 pt-3 border-t border-gray-100">
                 {orderPaid ? (
                   <div className="flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-green-50 border border-green-200 text-green-700 text-sm font-semibold">

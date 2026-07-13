@@ -1,7 +1,7 @@
 ﻿import { useEffect, useReducer, useRef, useState } from 'react';
 import { useConfirm } from '../../components/ConfirmModal';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, UtensilsCrossed, Check, Loader2, BedDouble, Tag, X, LayoutGrid, List, Search } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, UtensilsCrossed, Check, Loader2, BedDouble, Truck, Tag, X, LayoutGrid, List, Search } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { Table, Room } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
@@ -19,7 +19,7 @@ import { ToppingSelectionModal } from '../../components/ToppingSelectionModal';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
 
-type OrderMode = 'takeaway' | 'dine-in' | 'room-service';
+type OrderMode = 'takeaway' | 'dine-in' | 'room-service' | 'delivery';
 type Size = 'regular' | 'large';
 
 const toppingKey = (toppings?: SelectedTopping[]) => (toppings ?? []).map((t) => t.id).sort().join(',');
@@ -75,6 +75,9 @@ export function NewOrderPage() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryFee, setDeliveryFee] = useState('');
+  const [deliveryNotes, setDeliveryNotes] = useState('');
   const [placing, setPlacing] = useState(false);
   const [toppingModal, setToppingModal] = useState<{ item: MenuItem } | null>(null);
   const [editingNotesKey, setEditingNotesKey] = useState<string | null>(null);
@@ -119,6 +122,9 @@ export function NewOrderPage() {
     setSelectedRoom(null);
     setCustomerName('');
     setCustomerPhone('');
+    setDeliveryAddress('');
+    setDeliveryFee('');
+    setDeliveryNotes('');
     setAppliedPromo(null);
     setPromoInput('');
     setPromoError('');
@@ -186,6 +192,8 @@ export function NewOrderPage() {
     if (cart.length === 0) { toast.error('Add at least one item'); return; }
     if (mode === 'dine-in' && !selectedTable) { toast.error('Select a table'); return; }
     if (mode === 'room-service' && !selectedRoom) { toast.error('Select a room'); return; }
+    if (mode === 'delivery' && !deliveryAddress.trim()) { toast.error('Enter a delivery address'); return; }
+    if (mode === 'delivery' && !customerPhone.trim()) { toast.error('Enter a phone number for the rider'); return; }
 
     setPlacing(true);
     try {
@@ -202,11 +210,17 @@ export function NewOrderPage() {
         await orderService.placeOrder(table.id, table.number, cart, session.id, restaurantId, code, phone);
         toast.success(`Dine-in order placed for Table ${table.number}!`);
         navigate('/admin/orders');
-      } else {
+      } else if (mode === 'room-service') {
         const room = selectedRoom!;
         const restaurantId = user?.restaurantId ?? '';
         await orderService.placeRoomOrder(room.id, room.number, cart, customerName.trim() || undefined, restaurantId, code, phone);
         toast.success(`Room service order placed for Room ${room.number}!`);
+        navigate('/admin/orders');
+      } else {
+        const restaurantId = user?.restaurantId ?? '';
+        const fee = deliveryFee.trim() ? Number(deliveryFee) : undefined;
+        await orderService.placeDeliveryOrder(cart, deliveryAddress.trim(), customerPhone.trim(), customerName.trim() || undefined, restaurantId, code, fee, deliveryNotes.trim() || undefined);
+        toast.success('Delivery order placed!');
         navigate('/admin/orders');
       }
     } catch {
@@ -293,6 +307,14 @@ export function NewOrderPage() {
             }`}
           >
             <BedDouble size={13} /> Room Service
+          </button>
+          <button
+            onClick={() => switchMode('delivery')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              mode === 'delivery' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <Truck size={13} /> Delivery
           </button>
         </div>
 
@@ -521,6 +543,50 @@ export function NewOrderPage() {
             </div>
           )}
 
+          {/* Delivery details  -  delivery only */}
+          {mode === 'delivery' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-teal-50 p-4 space-y-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Delivery Details</p>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
+                  Address <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={deliveryAddress}
+                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  placeholder="House no., street, city"
+                  rows={2}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-300 resize-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
+                  Delivery Fee
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={deliveryFee}
+                  onChange={(e) => setDeliveryFee(e.target.value)}
+                  placeholder="0"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-300"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
+                  Notes
+                </label>
+                <input
+                  type="text"
+                  value={deliveryNotes}
+                  onChange={(e) => setDeliveryNotes(e.target.value)}
+                  placeholder="e.g. gate code, landmark (optional)"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-300"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Customer / guest name & phone */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
               {mode !== 'dine-in' && (
@@ -534,22 +600,22 @@ export function NewOrderPage() {
                     onChange={(e) => setCustomerName(e.target.value)}
                     placeholder="e.g. John (optional)"
                     className={`w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none ${
-                      mode === 'room-service' ? 'focus:ring-1 focus:ring-blue-300' : 'focus:ring-1 focus:ring-purple-300'
+                      mode === 'room-service' ? 'focus:ring-1 focus:ring-blue-300' : mode === 'delivery' ? 'focus:ring-1 focus:ring-teal-300' : 'focus:ring-1 focus:ring-purple-300'
                     }`}
                   />
                 </div>
               )}
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
-                  WhatsApp / Phone
+                  WhatsApp / Phone {mode === 'delivery' && <span className="text-red-500">*</span>}
                 </label>
                 <input
                   type="tel"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="e.g. 0771234567 (optional)"
+                  placeholder={mode === 'delivery' ? 'e.g. 0771234567' : 'e.g. 0771234567 (optional)'}
                   className={`w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none ${
-                    mode === 'room-service' ? 'focus:ring-1 focus:ring-blue-300' : mode === 'dine-in' ? 'focus:ring-1 focus:ring-orange-300' : 'focus:ring-1 focus:ring-purple-300'
+                    mode === 'room-service' ? 'focus:ring-1 focus:ring-blue-300' : mode === 'dine-in' ? 'focus:ring-1 focus:ring-orange-300' : mode === 'delivery' ? 'focus:ring-1 focus:ring-teal-300' : 'focus:ring-1 focus:ring-purple-300'
                   }`}
                 />
               </div>
@@ -702,13 +768,16 @@ export function NewOrderPage() {
                 disabled={
                   cart.length === 0 || placing ||
                   (mode === 'dine-in' && !selectedTable) ||
-                  (mode === 'room-service' && !selectedRoom)
+                  (mode === 'room-service' && !selectedRoom) ||
+                  (mode === 'delivery' && (!deliveryAddress.trim() || !customerPhone.trim()))
                 }
                 className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   mode === 'takeaway'
                     ? 'bg-purple-600 text-white hover:bg-purple-700'
                     : mode === 'room-service'
                     ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : mode === 'delivery'
+                    ? 'bg-teal-600 text-white hover:bg-teal-700'
                     : 'bg-orange-500 text-white hover:bg-orange-600'
                 }`}
               >
@@ -718,6 +787,8 @@ export function NewOrderPage() {
                   ? <><Check size={16} /> Place Takeaway Order</>
                   : mode === 'room-service'
                   ? <><Check size={16} /> Place Room Service Order{selectedRoom ? `  .  Room ${selectedRoom.number}` : ''}</>
+                  : mode === 'delivery'
+                  ? <><Check size={16} /> Place Delivery Order</>
                   : <><Check size={16} /> Place Dine-in Order{selectedTable ? `  .  Table ${selectedTable.number}` : ''}</>
                 }
               </button>

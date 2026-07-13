@@ -4,6 +4,8 @@ const config: Record<string, { label: string; className: string }> = {
   pending:  { label: 'Pending',   className: 'bg-yellow-100 text-yellow-800' },
   preparing:{ label: 'Preparing', className: 'bg-blue-100 text-blue-800' },
   ready:    { label: 'Ready',     className: 'bg-green-100 text-green-800' },
+  'out-for-delivery': { label: 'Out for Delivery', className: 'bg-teal-100 text-teal-800' },
+  delivered:{ label: 'Delivered', className: 'bg-emerald-100 text-emerald-800' },
   cancelled:{ label: 'Cancelled', className: 'bg-red-100 text-red-700' },
   paid:     { label: 'Paid',      className: 'bg-emerald-100 text-emerald-800' },
 };
