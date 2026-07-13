@@ -36,14 +36,20 @@ const toLocalInput = (iso: string) => {
   const d = new Date(iso);
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 };
+const nowLocalInput = () => toLocalInput(new Date().toISOString());
 
 interface FormState {
   id: string | null; type: ReservationType; tableId: string; roomId: string;
   customerName: string; customerPhone: string; partySize: string; reservedAt: string; notes: string;
 }
-const emptyForm = (date: string): FormState => ({
-  id: null, type: 'table', tableId: '', roomId: '', customerName: '', customerPhone: '', partySize: '2', reservedAt: `${date}T19:00`, notes: '',
-});
+const emptyForm = (date: string): FormState => {
+  const defaultAt = `${date}T19:00`;
+  const now = nowLocalInput();
+  return {
+    id: null, type: 'table', tableId: '', roomId: '', customerName: '', customerPhone: '', partySize: '2',
+    reservedAt: date === todayStr() && now > defaultAt ? now : defaultAt, notes: '',
+  };
+};
 
 export function ReservationsPage({ embedded = false }: { embedded?: boolean }) {
   const { confirm, modal } = useConfirm();
@@ -381,7 +387,7 @@ export function ReservationsPage({ embedded = false }: { embedded?: boolean }) {
               </div>
               <div>
                 <FormLabel required>Date &amp; time</FormLabel>
-                <FormInput type="datetime-local" value={form.reservedAt} onChange={(e) => setForm((f) => ({ ...f, reservedAt: e.target.value }))} />
+                <FormInput type="datetime-local" min={nowLocalInput()} value={form.reservedAt} onChange={(e) => setForm((f) => ({ ...f, reservedAt: e.target.value }))} />
               </div>
               <div>
                 <FormLabel>Notes</FormLabel>
