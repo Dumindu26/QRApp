@@ -26,7 +26,6 @@ export function OrdersPage() {
   type StatusTab = 'all' | OrderStatus;
 
   const TYPE_TABS: { label: string; value: TypeTab }[] = [
-    { label: 'All',      value: 'all'          },
     { label: 'Dining',   value: 'dine-in'      },
     { label: 'Takeaway', value: 'takeaway'     },
     { label: 'Room',     value: 'room-service' },
@@ -42,7 +41,6 @@ export function OrdersPage() {
   // Out for Delivery / Delivered only make sense once a delivery order is in view
   const showDeliveryStatuses = typeTab === 'delivery' || typeTab === 'all';
   const STATUS_CHIPS: { label: string; value: StatusTab }[] = [
-    { label: 'All',       value: 'all'       },
     { label: 'Pending',   value: 'pending'   },
     { label: 'Preparing', value: 'preparing' },
     { label: 'Ready',     value: 'ready'     },
@@ -257,9 +255,7 @@ export function OrdersPage() {
           <div className="flex flex-1">
             {TYPE_TABS.map((tt) => {
               const count =
-                tt.value === 'all'
-                  ? orders.filter((o) => o.status !== 'cancelled').length
-                  : tt.value === 'dine-in'
+                tt.value === 'dine-in'
                   ? orders.filter((o) => o.orderType !== 'takeaway' && o.orderType !== 'room-service' && o.orderType !== 'delivery' && o.status !== 'cancelled').length
                   : tt.value === 'takeaway'
                   ? orders.filter((o) => o.orderType === 'takeaway' && o.status !== 'cancelled').length
@@ -270,7 +266,7 @@ export function OrdersPage() {
               return (
                 <button
                   key={tt.value}
-                  onClick={() => setTypeTab(tt.value)}
+                  onClick={() => setTypeTab((prev) => (prev === tt.value ? 'all' : tt.value))}
                   className={`relative flex flex-col items-center justify-center flex-1 py-2.5 gap-0.5 transition-colors ${
                     active ? 'text-emerald-700' : 'text-gray-400 hover:text-gray-600'
                   }`}
@@ -300,9 +296,7 @@ export function OrdersPage() {
         <div className="relative border-b border-gray-100">
           <div className="flex gap-1.5 overflow-x-auto py-2 pl-3 sm:pl-4 lg:pl-6 pr-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {STATUS_CHIPS.map((sc) => {
-              const count = sc.value === 'all'
-                ? byType.filter((o) => o.status !== 'cancelled').length
-                : byType.filter((o) => o.status === sc.value).length;
+              const count = byType.filter((o) => o.status === sc.value).length;
               const active = statusTab === sc.value;
               const dotColor =
                 sc.value === 'pending'   ? 'bg-amber-500'
@@ -310,19 +304,16 @@ export function OrdersPage() {
                 : sc.value === 'ready'     ? 'bg-green-500'
                 : sc.value === 'out-for-delivery' ? 'bg-teal-500'
                 : sc.value === 'delivered' ? 'bg-emerald-600'
-                : sc.value === 'cancelled' ? 'bg-red-400'
-                : '';
+                :                            'bg-red-400';
               const activeCls =
-                sc.value === 'all'       ? 'bg-gray-900 border-gray-800 text-white'
-                : sc.value === 'pending'   ? 'bg-amber-50 border-amber-400 text-amber-700'
+                sc.value === 'pending'   ? 'bg-amber-50 border-amber-400 text-amber-700'
                 : sc.value === 'preparing' ? 'bg-blue-50 border-blue-500 text-blue-700'
                 : sc.value === 'ready'     ? 'bg-green-50 border-green-500 text-green-700'
                 : sc.value === 'out-for-delivery' ? 'bg-teal-50 border-teal-500 text-teal-700'
                 : sc.value === 'delivered' ? 'bg-emerald-50 border-emerald-600 text-emerald-700'
                 :                           'bg-red-50 border-red-400 text-red-600';
               const countCls = active
-                ? sc.value === 'all'       ? 'text-white/60'
-                : sc.value === 'pending'   ? 'text-amber-600'
+                ? sc.value === 'pending'   ? 'text-amber-600'
                 : sc.value === 'preparing' ? 'text-blue-600'
                 : sc.value === 'ready'     ? 'text-green-600'
                 : sc.value === 'out-for-delivery' ? 'text-teal-600'
@@ -332,14 +323,12 @@ export function OrdersPage() {
               return (
                 <button
                   key={sc.value}
-                  onClick={() => setStatusTab(sc.value)}
+                  onClick={() => setStatusTab((prev) => (prev === sc.value ? 'all' : sc.value))}
                   className={`flex flex-col items-center justify-center gap-1 min-w-[54px] h-[52px] px-2.5 rounded-xl border-[1.5px] shrink-0 transition-all active:scale-95 ${
                     active ? activeCls : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
                   }`}
                 >
-                  {sc.value !== 'all' && (
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
-                  )}
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
                   <span className="text-[10px] font-semibold leading-none whitespace-nowrap">{sc.label}</span>
                   <span className={`text-sm font-extrabold leading-none tabular-nums ${countCls}`}>{count}</span>
                 </button>
