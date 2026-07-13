@@ -8,7 +8,6 @@ import type { Order, OrderStatus } from '../../types';
 import { orderService } from '../../services/orderService';
 import { waiterService, type Waiter } from '../../services/waiterService';
 import { OrderCard } from '../../components/OrderCard';
-import { StatusBadge } from '../../components/StatusBadge';
 import { BillDetailPanel } from '../../components/BillDetailPanel';
 import { AddItemsModal } from '../../components/AddItemsModal';
 import { restaurantService, type RestaurantSettings } from '../../services/restaurantService';
@@ -22,8 +21,8 @@ import { EmptyState } from '../../components/EmptyState';
 export function OrdersPage() {
   const { t } = useTranslation();
 
-  type TypeTab   = 'all' | 'dine-in' | 'takeaway' | 'room-service' | 'delivery';
-  type StatusTab = 'all' | OrderStatus;
+  type TypeTab   = 'dine-in' | 'takeaway' | 'room-service' | 'delivery';
+  type StatusTab = OrderStatus;
 
   const TYPE_TABS: { label: string; value: TypeTab }[] = [
     { label: 'Dining',   value: 'dine-in'      },
@@ -35,11 +34,11 @@ export function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [waiters, setWaiters] = useState<Waiter[]>([]);
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
-  const [typeTab,   setTypeTab]   = useState<TypeTab>('all');
-  const [statusTab, setStatusTab] = useState<StatusTab>('all');
+  const [typeTab,   setTypeTab]   = useState<TypeTab>('dine-in');
+  const [statusTab, setStatusTab] = useState<StatusTab>('pending');
 
   // Out for Delivery / Delivered only make sense once a delivery order is in view
-  const showDeliveryStatuses = typeTab === 'delivery' || typeTab === 'all';
+  const showDeliveryStatuses = typeTab === 'delivery';
   const STATUS_CHIPS: { label: string; value: StatusTab }[] = [
     { label: 'Pending',   value: 'pending'   },
     { label: 'Preparing', value: 'preparing' },
@@ -144,13 +143,10 @@ export function OrdersPage() {
     if (typeTab === 'dine-in')      return o.orderType !== 'takeaway' && o.orderType !== 'room-service' && o.orderType !== 'delivery';
     if (typeTab === 'takeaway')     return o.orderType === 'takeaway';
     if (typeTab === 'room-service') return o.orderType === 'room-service';
-    if (typeTab === 'delivery')     return o.orderType === 'delivery';
-    return true;
+    return o.orderType === 'delivery';
   });
 
-  const filtered = byType.filter((o) =>
-    statusTab === 'all' ? o.status !== 'cancelled' : o.status === statusTab,
-  );
+  const filtered = byType.filter((o) => o.status === statusTab);
 
   const displayed = search.trim()
     ? filtered.filter((o) => {
@@ -165,22 +161,6 @@ export function OrdersPage() {
         );
       })
     : filtered;
-
-  const orderGroups = [
-    { key: 'takeaway',     label: 'Takeaway',     dot: 'bg-purple-400', orders: displayed.filter((o) => o.orderType === 'takeaway') },
-    { key: 'dine-in',      label: 'Dine In',      dot: 'bg-orange-400', orders: displayed.filter((o) => o.orderType !== 'takeaway' && o.orderType !== 'room-service' && o.orderType !== 'delivery') },
-    { key: 'room-service', label: 'Room Service',  dot: 'bg-blue-400',   orders: displayed.filter((o) => o.orderType === 'room-service') },
-    { key: 'delivery',     label: 'Delivery',      dot: 'bg-teal-400',   orders: displayed.filter((o) => o.orderType === 'delivery') },
-  ].filter((g) => g.orders.length > 0);
-  // For single-type tabs, group by status; for 'all' tab, group by order type
-  const statusGroups = [
-    { key: 'pending',   label: 'Pending',   dot: 'bg-yellow-400', orders: displayed.filter((o) => o.status === 'pending')   },
-    { key: 'preparing', label: 'Preparing', dot: 'bg-blue-400',   orders: displayed.filter((o) => o.status === 'preparing') },
-    { key: 'ready',     label: 'Ready',     dot: 'bg-green-400',  orders: displayed.filter((o) => o.status === 'ready')     },
-  ].filter((g) => g.orders.length > 0);
-
-  const activeGroups = typeTab === 'all' ? orderGroups : statusGroups;
-  const showGroups = activeGroups.length > 1;
 
   const STATUS_ORDER: Record<string, number> = { pending: 0, preparing: 1, ready: 2 };
 
@@ -266,7 +246,7 @@ export function OrdersPage() {
               return (
                 <button
                   key={tt.value}
-                  onClick={() => setTypeTab((prev) => (prev === tt.value ? 'all' : tt.value))}
+                  onClick={() => setTypeTab(tt.value)}
                   className={`relative flex flex-col items-center justify-center flex-1 py-2.5 gap-0.5 transition-colors ${
                     active ? 'text-emerald-700' : 'text-gray-400 hover:text-gray-600'
                   }`}
@@ -323,7 +303,7 @@ export function OrdersPage() {
               return (
                 <button
                   key={sc.value}
-                  onClick={() => setStatusTab((prev) => (prev === sc.value ? 'all' : sc.value))}
+                  onClick={() => setStatusTab(sc.value)}
                   className={`flex flex-col items-center justify-center gap-1 min-w-[54px] h-[52px] px-2.5 rounded-xl border-[1.5px] shrink-0 transition-all active:scale-95 ${
                     active ? activeCls : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
                   }`}
@@ -473,35 +453,6 @@ export function OrdersPage() {
               </>
         ) : displayed.length === 0 ? (
           <div className="pt-8"><EmptyState compact icon={ClipboardList} title={t('orders.noOrders')} /></div>
-        ) : showGroups ? (
-          <div className="space-y-5">
-            {activeGroups.map((g) => (
-              <div key={g.key}>
-                <div className="flex items-center gap-2 px-1 mb-2">
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${g.dot}`} />
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{g.label}</span>
-                  <span className="text-xs text-gray-400">({g.orders.length})</span>
-                </div>
-                <div className="columns-1 sm:columns-2 gap-3">
-                  {g.orders.map((order) => (
-                    <div key={order.id} className="break-inside-avoid mb-3">
-                      <OrderCard
-                        order={order}
-                        onStatusChange={handleStatusChange}
-                        onAssignWaiter={handleAssignWaiter}
-                        onAddItems={setAddItemsOrder}
-                        onCancel={handleCancel}
-                        onRemoveItem={handleRemoveItem}
-                        onUpdateItemQty={handleUpdateItemQty}
-                        waiters={waiters}
-                        showActions
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
         ) : (
           <div className="columns-1 sm:columns-2 gap-3">
             {displayed.map((order) => (
@@ -611,7 +562,7 @@ export function OrdersPage() {
             </div>
           </>
         ) : (
-          /* ── All / Takeaway: narrow list + detail ── */
+          /* ── Takeaway / Delivery: narrow list + detail ── */
           <>
             <div className="w-72 lg:w-80 shrink-0 overflow-y-auto border-r border-gray-200 bg-white">
               <div className="px-3 py-3">
@@ -621,46 +572,6 @@ export function OrdersPage() {
                   </div>
                 ) : displayed.length === 0 ? (
                   <div className="pt-8"><EmptyState compact icon={ClipboardList} title={t('orders.noOrders')} /></div>
-                ) : showGroups ? (
-                  <div className="space-y-4">
-                    {activeGroups.map((g) => (
-                      <div key={g.key}>
-                        <div className="flex items-center gap-1.5 px-1 mb-1.5">
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${g.dot}`} />
-                          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{g.label}</span>
-                          <span className="text-xs text-gray-300">({g.orders.length})</span>
-                        </div>
-                        <div className="space-y-1.5">
-                          {g.orders.map((order) => (
-                            <button
-                              key={order.id}
-                              onClick={() => setSelectedOrderId(order.id)}
-                              className={`w-full text-left px-3 py-2.5 rounded-xl border transition-colors ${
-                                selectedOrderId === order.id
-                                  ? 'bg-orange-50 border-orange-200'
-                                  : 'bg-gray-50 border-transparent hover:bg-white hover:border-gray-200'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-sm font-semibold text-gray-900 truncate">
-                                  {order.orderNumber ?? 'Order'}
-                                </span>
-                                <StatusBadge status={order.status} />
-                              </div>
-                              <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
-                                <span>
-                                  {order.orderType === 'takeaway' ? 'Takeaway' :
-                                   order.tableNumber ? `Table ${order.tableNumber}` :
-                                   order.roomNumber  ? `Room ${order.roomNumber}` : '—'}
-                                </span>
-                                {order.customerName && <span className="truncate">{order.customerName}</span>}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 ) : (
                   <div className="space-y-1.5">
                     {displayed.map((order) => (
