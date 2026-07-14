@@ -265,7 +265,7 @@ export function PromoScreensPage() {
                     <button
                       key={screen.id}
                       onClick={() => setSelectedId(screen.id)}
-                      className={`w-full text-left rounded-lg border p-3 transition-colors ${selectedId === screen.id ? 'border-blue-200 bg-blue-50' : 'border-gray-100 bg-white hover:bg-gray-50'}`}
+                      className={`w-full text-left rounded-lg border p-3 transition-colors ${selectedId === screen.id ? 'border-orange-200 bg-orange-50' : 'border-gray-100 bg-white hover:bg-gray-50'}`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -304,7 +304,7 @@ export function PromoScreensPage() {
                     Background
                     <input type="color" className="mt-1 w-full h-10 border border-gray-200 rounded-lg px-1 py-1" value={screenForm.backgroundColor} onChange={(e) => setScreenForm((p) => ({ ...p, backgroundColor: e.target.value }))} />
                   </label>
-                  <button onClick={saveScreen} disabled={savingScreen} className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white rounded-lg py-2.5 text-sm font-semibold disabled:opacity-60">
+                  <button onClick={saveScreen} disabled={savingScreen} className="w-full flex items-center justify-center gap-2 bg-orange-500 text-white rounded-lg py-2.5 text-sm font-semibold disabled:opacity-60">
                     <Plus size={16} /> {savingScreen ? 'Saving...' : 'Create Screen'}
                   </button>
                 </div>
@@ -326,7 +326,7 @@ export function PromoScreensPage() {
                         <p className="text-sm text-gray-500 mt-1">{displayUrl(selected.token)}</p>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <button onClick={refreshSelected} disabled={refreshing} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-100 text-sm text-blue-600 hover:bg-blue-50 disabled:opacity-60">
+                        <button onClick={refreshSelected} disabled={refreshing} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-orange-100 text-sm text-orange-600 hover:bg-orange-50 disabled:opacity-60">
                           <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} /> Refresh Screen
                         </button>
                         <button onClick={copyUrl} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50"><Copy size={15} /> Copy URL</button>
@@ -380,7 +380,7 @@ export function PromoScreensPage() {
                                     {item.active ? <ToggleRight size={18} /> : <ToggleLeft size={18} />} {item.active ? 'Active' : 'Off'}
                                   </button>
                                   <div className="flex items-center gap-1">
-                                    <button onClick={() => editItem(item)} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50"><Pencil size={15} /></button>
+                                    <button onClick={() => editItem(item)} className="p-1.5 rounded-lg text-gray-400 hover:text-orange-600 hover:bg-orange-50"><Pencil size={15} /></button>
                                     <button onClick={() => deleteItem(item)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"><Trash2 size={15} /></button>
                                   </div>
                                 </div>
@@ -413,10 +413,10 @@ export function PromoScreensPage() {
                         </div>
                         {itemForm.imageUrl && <img src={itemForm.imageUrl} alt="" className="h-28 w-full object-cover rounded-lg bg-gray-100" />}
                         <div className="flex gap-2">
-                          <button onClick={() => saveItem(false)} disabled={savingItem} className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white rounded-lg py-2.5 text-sm font-semibold disabled:opacity-60">
+                          <button onClick={() => saveItem(false)} disabled={savingItem} className="flex-1 flex items-center justify-center gap-2 bg-orange-500 text-white rounded-lg py-2.5 text-sm font-semibold disabled:opacity-60">
                             <ImagePlus size={16} /> {savingItem ? 'Saving...' : editingItem ? 'Update' : 'Add'}
                           </button>
-                          <button onClick={() => saveItem(true)} disabled={savingItem} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border border-blue-100 text-sm font-semibold text-blue-600 hover:bg-blue-50 disabled:opacity-60">
+                          <button onClick={() => saveItem(true)} disabled={savingItem} className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border border-orange-100 text-sm font-semibold text-orange-600 hover:bg-orange-50 disabled:opacity-60">
                             <RefreshCw size={15} /> Save & Refresh
                           </button>
                           {editingItem && <button onClick={resetItemForm} className="px-3 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-600">Cancel</button>}

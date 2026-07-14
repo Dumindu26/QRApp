@@ -119,10 +119,10 @@ export function AdminSidebar() {
               to={item.to}
               title={item.label}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors relative ${
-                active ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                active ? 'bg-orange-50 text-orange-600' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
-              <item.icon size={iconSize} className={active ? 'text-blue-600' : 'text-gray-400'} />
+              <item.icon size={iconSize} className={active ? 'text-orange-600' : 'text-gray-400'} />
               {!collapsed && <span className="flex-1">{item.label}</span>}
               {item.badge && activeCount > 0 && (
                 <span className={`font-bold bg-orange-500 text-white rounded-full text-center leading-none ${

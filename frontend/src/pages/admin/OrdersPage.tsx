@@ -282,7 +282,7 @@ export function OrdersPage() {
                   key={tt.value}
                   onClick={() => setTypeTab(tt.value)}
                   className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-colors ${
-                    active ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'
+                    active ? 'bg-orange-500 text-white' : 'text-gray-500 hover:bg-gray-100'
                   }`}
                 >
                   {tt.label} · <span className="tabular-nums">{count}</span>
