@@ -69,7 +69,7 @@ export function AdminHeader({ title, subtitle, backTo, icon: Icon, children }: A
 
         <button
           onClick={toggleDark}
-          className="text-gray-400 hover:text-gray-700 transition-colors shrink-0"
+          className="p-2.5 rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors shrink-0"
           title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           {dark ? <Sun size={18} /> : <Moon size={18} />}

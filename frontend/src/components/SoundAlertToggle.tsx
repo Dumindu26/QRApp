@@ -18,15 +18,15 @@ export function SoundAlertToggle() {
     <button
       onClick={toggle}
       title={enabled ? 'Sound alerts on — click to mute' : 'Sound alerts off — click to enable'}
-      className={`relative flex items-center justify-center w-8 h-8 rounded-full transition-colors ${
+      className={`relative flex items-center justify-center p-2.5 rounded-xl transition-colors ${
         enabled
-          ? 'text-orange-500 hover:bg-orange-50'
-          : 'text-gray-400 hover:bg-gray-100'
+          ? 'text-orange-500 bg-orange-50 hover:bg-orange-100'
+          : 'text-gray-500 bg-gray-100 hover:bg-gray-200'
       }`}
     >
       {enabled ? <Bell size={18} /> : <BellOff size={18} />}
       {enabled && (
-        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-orange-400 rounded-full" />
+        <span className="absolute top-1 right-1 w-2 h-2 bg-orange-400 rounded-full" />
       )}
     </button>
   );

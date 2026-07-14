@@ -394,47 +394,49 @@ export function BillDetailPanel({ order, onStatusChange, settings, onPaid }: Pro
       </div>
 
       {/* ── Sticky action bar ──────────────────────────────────────────────── */}
-      <div className="border-t border-gray-100 bg-white px-4 py-3 flex items-center gap-2 shrink-0">
-        <button
-          onClick={handlePrint}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-800 active:scale-95 transition-all whitespace-nowrap"
-        >
-          <Printer size={15} /> Print Bill
-        </button>
-        <button
-          onClick={handleDownloadPdf}
-          className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 active:scale-95 transition-all whitespace-nowrap"
-        >
-          <Download size={15} /> PDF
-        </button>
+      <div className="border-t border-gray-100 bg-white px-4 py-3 flex flex-col gap-2.5 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={handlePrint}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 active:scale-95 transition-all whitespace-nowrap"
+          >
+            <Printer size={15} /> Print bill
+          </button>
+          <button
+            onClick={handleDownloadPdf}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 active:scale-95 transition-all whitespace-nowrap"
+          >
+            <Download size={15} /> PDF
+          </button>
+        </div>
         {isDineIn ? (
           liveSession?.status === 'paid' ? (
-            <div className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm font-semibold">
+            <div className="flex items-center justify-center gap-2 py-3.5 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm font-semibold">
               <CheckCircle2 size={15} /> Paid
             </div>
           ) : (
             <button
               onClick={() => setShowPay(true)}
               disabled={paying || !canMarkPaid}
-              className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm active:scale-95"
+              className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-3.5 rounded-xl transition-colors text-sm active:scale-95"
             >
               {paying ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
-              {paying ? 'Processing…' : 'Mark as Paid'}
+              {paying ? 'Processing…' : 'Mark as paid'}
             </button>
           )
         ) : (
           orderPaid ? (
-            <div className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm font-semibold">
+            <div className="flex items-center justify-center gap-2 py-3.5 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm font-semibold">
               <CheckCircle2 size={15} /> Paid
             </div>
           ) : (
             <button
               onClick={() => setShowPayOrder(true)}
               disabled={payingOrder}
-              className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm active:scale-95"
+              className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-3.5 rounded-xl transition-colors text-sm active:scale-95"
             >
               {payingOrder ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
-              {payingOrder ? 'Processing…' : 'Mark as Paid'}
+              {payingOrder ? 'Processing…' : 'Mark as paid'}
             </button>
           )
         )}

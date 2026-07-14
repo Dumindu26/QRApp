@@ -186,6 +186,16 @@ export function OrdersPage() {
 
   const STATUS_ORDER: Record<string, number> = { pending: 0, preparing: 1, ready: 2 };
 
+  function statusStripeCls(status: OrderStatus) {
+    return status === 'pending'   ? 'border-l-amber-400'
+      : status === 'preparing'    ? 'border-l-blue-400'
+      : status === 'ready'        ? 'border-l-green-400'
+      : status === 'out-for-delivery' ? 'border-l-teal-400'
+      : status === 'delivered'    ? 'border-l-emerald-500'
+      : status === 'cancelled'    ? 'border-l-red-400'
+      :                              'border-l-green-500';
+  }
+
   function buildGroupData(grpOrders: Order[]) {
     const total     = grpOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
     const itemCount = grpOrders.reduce((s, o) => s + (o.items?.length ?? 0), 0);
@@ -247,14 +257,14 @@ export function OrdersPage() {
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto md:overflow-hidden mt-14 md:mt-0 flex flex-col">
       <AdminHeader title={t('orders.title')} backTo="/admin">
-        <button onClick={fetch} className="text-gray-400 hover:text-gray-600 shrink-0" title="Refresh">
+        <button onClick={fetch} className="p-2.5 rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors shrink-0" title="Refresh">
           <RefreshCw size={18} />
         </button>
       </AdminHeader>
       <div className="bg-white shadow-sm sticky top-0 z-30">
-        {/* Level 1 — order type (compact underline tabs) */}
-        <div className="flex items-center border-b border-gray-100">
-          <div className="flex flex-1">
+        {/* Level 1 — order type (filled pill tabs) */}
+        <div className="flex items-center gap-2 p-3">
+          <div className="flex flex-1 gap-2">
             {TYPE_TABS.map((tt) => {
               const count =
                 tt.value === 'all'
@@ -271,29 +281,21 @@ export function OrdersPage() {
                 <button
                   key={tt.value}
                   onClick={() => setTypeTab(tt.value)}
-                  className={`relative flex flex-col items-center justify-center flex-1 py-2.5 gap-0.5 transition-colors ${
-                    active ? 'text-emerald-700' : 'text-gray-400 hover:text-gray-600'
+                  className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                    active ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'
                   }`}
                 >
-                  <span className="text-[11px] font-semibold leading-none">{tt.label}</span>
-                  <span className={`text-[11px] font-bold tabular-nums leading-none ${active ? 'text-emerald-600' : 'text-gray-300'}`}>
-                    {count}
-                  </span>
-                  {active && (
-                    <span className="absolute bottom-0 left-[12%] right-[12%] h-[2.5px] rounded-full bg-emerald-600" />
-                  )}
+                  {tt.label} · <span className="tabular-nums">{count}</span>
                 </button>
               );
             })}
           </div>
-          <div className="px-3 shrink-0">
-            <Link
-              to="/admin/new-order"
-              className="flex items-center gap-1.5 bg-emerald-600 text-white px-3 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors"
-            >
-              <Plus size={15} /> New
-            </Link>
-          </div>
+          <Link
+            to="/admin/new-order"
+            className="flex items-center gap-1.5 bg-orange-500 text-white px-4 py-3 rounded-xl text-sm font-semibold hover:bg-orange-600 transition-colors shrink-0"
+          >
+            <Plus size={16} /> New
+          </Link>
         </div>
 
         {/* Level 2 — order status (scrollable tiles with dot + label + count) */}
@@ -304,14 +306,14 @@ export function OrdersPage() {
                 ? byType.filter((o) => o.status !== 'cancelled').length
                 : byType.filter((o) => o.status === sc.value).length;
               const active = statusTab === sc.value;
-              const dotColor =
-                sc.value === 'pending'   ? 'bg-amber-500'
-                : sc.value === 'preparing' ? 'bg-blue-500'
-                : sc.value === 'ready'     ? 'bg-green-500'
-                : sc.value === 'out-for-delivery' ? 'bg-teal-500'
-                : sc.value === 'delivered' ? 'bg-emerald-600'
-                : sc.value === 'cancelled' ? 'bg-red-400'
-                : '';
+              const inactiveBorderCls =
+                sc.value === 'pending'   ? 'border-amber-200'
+                : sc.value === 'preparing' ? 'border-blue-200'
+                : sc.value === 'ready'     ? 'border-green-200'
+                : sc.value === 'out-for-delivery' ? 'border-teal-200'
+                : sc.value === 'delivered' ? 'border-emerald-200'
+                : sc.value === 'cancelled' ? 'border-red-200'
+                : 'border-gray-200';
               const activeCls =
                 sc.value === 'all'       ? 'bg-gray-900 border-gray-800 text-white'
                 : sc.value === 'pending'   ? 'bg-amber-50 border-amber-400 text-amber-700'
@@ -333,15 +335,12 @@ export function OrdersPage() {
                 <button
                   key={sc.value}
                   onClick={() => setStatusTab(sc.value)}
-                  className={`flex flex-col items-center justify-center gap-1 min-w-[54px] h-[52px] px-2.5 rounded-xl border-[1.5px] shrink-0 transition-all active:scale-95 ${
-                    active ? activeCls : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                  className={`flex flex-col items-center justify-center gap-1 min-w-[64px] h-[58px] px-3 rounded-xl border-[1.5px] shrink-0 transition-all active:scale-95 ${
+                    active ? activeCls : `bg-white ${inactiveBorderCls} text-gray-700 hover:border-gray-300`
                   }`}
                 >
-                  {sc.value !== 'all' && (
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
-                  )}
-                  <span className="text-[10px] font-semibold leading-none whitespace-nowrap">{sc.label}</span>
-                  <span className={`text-sm font-extrabold leading-none tabular-nums ${countCls}`}>{count}</span>
+                  <span className="text-[11px] font-semibold leading-none whitespace-nowrap">{sc.label}</span>
+                  <span className={`text-base font-extrabold leading-none tabular-nums ${countCls}`}>{count}</span>
                 </button>
               );
             })}
@@ -641,15 +640,15 @@ export function OrdersPage() {
                           <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{g.label}</span>
                           <span className="text-xs text-gray-300">({g.orders.length})</span>
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           {g.orders.map((order) => (
                             <button
                               key={order.id}
                               onClick={() => setSelectedOrderId(order.id)}
-                              className={`w-full text-left px-3 py-2.5 rounded-xl border transition-colors ${
+                              className={`w-full text-left px-3.5 py-3.5 rounded-xl border-l-4 transition-colors ${statusStripeCls(order.status)} ${
                                 selectedOrderId === order.id
-                                  ? 'bg-orange-50 border-orange-200'
-                                  : 'bg-gray-50 border-transparent hover:bg-white hover:border-gray-200'
+                                  ? 'bg-blue-50'
+                                  : 'bg-gray-50 hover:bg-white'
                               }`}
                             >
                               <div className="flex items-center justify-between gap-2">
@@ -673,22 +672,22 @@ export function OrdersPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     {displayed.map((order) => (
                       <button
                         key={order.id}
                         onClick={() => setSelectedOrderId(order.id)}
-                        className={`w-full text-left px-3 py-2.5 rounded-xl border transition-colors ${
+                        className={`w-full text-left px-3.5 py-3.5 rounded-xl border-l-4 transition-colors ${statusStripeCls(order.status)} ${
                           selectedOrderId === order.id
-                            ? 'bg-orange-50 border-orange-200'
-                            : 'bg-gray-50 border-transparent hover:bg-white hover:border-gray-200'
+                            ? 'bg-blue-50'
+                            : 'bg-gray-50 hover:bg-white'
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-sm font-semibold text-gray-900 truncate">
                             {order.orderNumber ?? 'Order'}
                           </span>
-                          <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${
+                          <span className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${
                             order.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
                             order.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
                             order.status === 'ready'     ? 'bg-green-100 text-green-700' :

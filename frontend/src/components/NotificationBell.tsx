@@ -58,18 +58,18 @@ export function NotificationBell({ theme = 'light' }: Props) {
 
   // Colour tokens for each theme
   const base   = theme === 'dark'
-    ? 'text-gray-400 hover:text-white hover:bg-gray-700'
-    : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100';
+    ? 'text-gray-400 bg-gray-700 hover:text-white hover:bg-gray-600'
+    : 'text-gray-500 bg-gray-100 hover:text-gray-700 hover:bg-gray-200';
   const active = theme === 'dark'
-    ? 'text-orange-400 hover:text-orange-300 hover:bg-gray-700'
-    : 'text-orange-500 hover:text-orange-600 hover:bg-orange-50';
+    ? 'text-orange-400 bg-gray-700 hover:text-orange-300 hover:bg-gray-600'
+    : 'text-orange-500 bg-orange-50 hover:text-orange-600 hover:bg-orange-100';
 
   if (state === 'unsupported') return null;
 
   if (state === 'denied') {
     return (
       <span title="Notifications blocked — change in browser settings"
-        className={`p-1.5 rounded-lg cursor-not-allowed opacity-40 ${base}`}>
+        className={`p-2.5 rounded-xl cursor-not-allowed opacity-40 ${base}`}>
         <BellOff size={18} />
       </span>
     );
@@ -77,7 +77,7 @@ export function NotificationBell({ theme = 'light' }: Props) {
 
   if (state === 'loading') {
     return (
-      <span className={`p-1.5 rounded-lg ${base}`}>
+      <span className={`p-2.5 rounded-xl ${base}`}>
         <Loader2 size={18} className="animate-spin" />
       </span>
     );
@@ -87,7 +87,7 @@ export function NotificationBell({ theme = 'light' }: Props) {
     <button
       onClick={toggle}
       title={state === 'on' ? 'Notifications ON — click to disable' : 'Enable push notifications'}
-      className={`p-1.5 rounded-lg transition-colors ${state === 'on' ? active : base}`}
+      className={`p-2.5 rounded-xl transition-colors ${state === 'on' ? active : base}`}
     >
       {state === 'on' ? <BellRing size={18} /> : <Bell size={18} />}
     </button>
