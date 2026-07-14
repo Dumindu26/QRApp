@@ -23,6 +23,8 @@ import {
   type CategoryRow,
   type HeatmapCell,
 } from '../../services/reportService';
+import { reservationService, type Reservation } from '../../services/reservationService';
+import { tableService, type TableStatusEntry } from '../../services/tableService';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useOrderSoundAlert } from '../../hooks/useOrderSoundAlert';
@@ -58,6 +60,8 @@ export function DashboardPage() {
   const [cats,       setCats]       = useState<CategoryRow[]>([]);
   const [heatmap,    setHeatmap]    = useState<HeatmapCell[]>([]);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
+  const [todayReservations, setTodayReservations] = useState<Reservation[]>([]);
+  const [tableStatus, setTableStatus] = useState<TableStatusEntry[]>([]);
   const [orderSearch, setOrderSearch] = useState('');
   const [botRunning, setBotRunning] = useState(false);
   const [botLoading, setBotLoading] = useState(false);
@@ -80,6 +84,18 @@ export function DashboardPage() {
   useEffect(() => { stockService.list().then(setStockItems).catch(() => {}); }, []);
 
   useEffect(() => {
+    const dateStr = new Date().toLocaleDateString('en-CA');
+    reservationService.list({ date: dateStr }).then(setTodayReservations).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const load = () => tableService.getStatus().then(setTableStatus).catch(() => {});
+    load();
+    const id = setInterval(load, 15000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
     reportService.getToday().then(setToday).catch(() => {});
     const to   = new Date().toLocaleDateString('en-CA');
     const from = new Date(Date.now() - 6 * 86_400_000).toLocaleDateString('en-CA');
@@ -99,6 +115,43 @@ export function DashboardPage() {
   const todayRevenue  = today?.revenue ?? todayOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
   const avgOrderValue = todayOrders.length > 0 ? todayRevenue / todayOrders.length : 0;
   const lowStock      = stockItems.filter((i) => i.minThreshold > 0 && i.quantity <= i.minThreshold);
+
+  // Upcoming reservations for today, soonest first
+  const upcomingReservations = todayReservations
+    .filter((r) => r.status === 'booked' && new Date(r.reservedAt).getTime() >= now.getTime())
+    .sort((a, b) => new Date(a.reservedAt).getTime() - new Date(b.reservedAt).getTime())
+    .slice(0, 3);
+
+  function minutesUntil(iso: string): number {
+    return Math.max(0, Math.round((new Date(iso).getTime() - now.getTime()) / 60_000));
+  }
+  function fmtCountdown(mins: number): string {
+    if (mins < 1) return 'now';
+    if (mins < 60) return `in ${mins}m`;
+    return `in ${Math.floor(mins / 60)}h ${mins % 60}m`;
+  }
+
+  // Live floor status
+  const freeTables     = tableStatus.filter((t) => t.status === 'free').length;
+  const occupiedTables = tableStatus.filter((t) => t.status === 'waiting' || t.status === 'active').length;
+  const staleTables    = tableStatus.filter((t) => t.status === 'stale').length;
+
+  // Top staff today, by orders assigned
+  const waiterCounts = new Map<string, number>();
+  todayOrders.forEach((o) => {
+    if (o.assignedWaiterName && o.status !== 'cancelled') {
+      waiterCounts.set(o.assignedWaiterName, (waiterCounts.get(o.assignedWaiterName) ?? 0) + 1);
+    }
+  });
+  const topStaff = [...waiterCounts.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 3);
+
+  // Revenue vs yesterday
+  const yesterdayStr     = new Date(Date.now() - 86_400_000).toLocaleDateString('en-CA');
+  const yesterdayRevenue = daily.find((r) => r.date === yesterdayStr)?.revenue ?? 0;
+  const revenueDeltaPct  = yesterdayRevenue > 0 ? Math.round(((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100) : null;
 
   const hour     = now.getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -612,6 +665,111 @@ export function DashboardPage() {
 
 
             </div>
+          </div>
+
+          {/* ── Reservations / Floor / Staff / Revenue delta ────────────────── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+            {/* Today's Reservations */}
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-bold text-gray-900">Today's Reservations</p>
+                <Link to="/admin/floor" className="text-xs text-orange-500 font-semibold hover:underline">View all</Link>
+              </div>
+              {upcomingReservations.length === 0 ? (
+                <p className="text-xs text-gray-300 text-center py-6">No upcoming reservations</p>
+              ) : (
+                <div className="space-y-3">
+                  {upcomingReservations.map((r) => (
+                    <div key={r.id} className="flex items-center gap-3">
+                      <div className="text-center w-14 shrink-0">
+                        <p className="text-sm font-bold text-gray-900 tabular-nums leading-tight">
+                          {new Date(r.reservedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                        <p className="text-[10px] text-orange-500 font-semibold">{fmtCountdown(minutesUntil(r.reservedAt))}</p>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-800 truncate">{r.customerName} · {r.partySize} guests</p>
+                        <p className="text-xs text-gray-400">{r.type === 'room' ? `Room ${r.roomNumber}` : `Table ${r.tableNumber}`}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Live Floor Status */}
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-bold text-gray-900">Live Floor Status</p>
+                <Link to="/admin/floor" className="text-xs text-orange-500 font-semibold hover:underline">View all</Link>
+              </div>
+              {tableStatus.length === 0 ? (
+                <p className="text-xs text-gray-300 text-center py-6">No tables set up</p>
+              ) : (
+                <>
+                  <div className="grid grid-cols-5 gap-1.5 mb-3">
+                    {tableStatus.slice(0, 10).map((t) => (
+                      <div
+                        key={t.id}
+                        className={`rounded-lg text-center text-xs font-semibold py-1.5 ${
+                          t.status === 'free'  ? 'bg-green-50 text-green-600'
+                          : t.status === 'stale' ? 'bg-red-50 text-red-600'
+                          :                        'bg-amber-50 text-amber-600'
+                        }`}
+                      >
+                        {t.number}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    <span className="font-semibold text-amber-600">{occupiedTables} occupied</span>
+                    {staleTables > 0 && <> · <span className="font-semibold text-red-600">{staleTables} needs attention</span></>}
+                    {' · '}<span className="font-semibold text-green-600">{freeTables} free</span>
+                  </p>
+                </>
+              )}
+            </div>
+
+            {/* Top Staff Today */}
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <p className="text-sm font-bold text-gray-900 mb-3">Top Staff Today</p>
+              {topStaff.length === 0 ? (
+                <p className="text-xs text-gray-300 text-center py-6">No orders assigned yet</p>
+              ) : (
+                <div className="space-y-2.5">
+                  {topStaff.map((s, i) => (
+                    <div key={s.name} className="flex items-center gap-2.5">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
+                        i === 0 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'
+                      }`}>
+                        {i + 1}
+                      </div>
+                      <p className="text-sm text-gray-800 flex-1 truncate">{s.name}</p>
+                      <p className="text-sm font-bold text-gray-900">{s.count} orders</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Revenue vs Yesterday */}
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <p className="text-sm font-bold text-gray-900 mb-3">Revenue vs Yesterday</p>
+              <div className="flex items-baseline gap-2 mb-1">
+                <p className="text-2xl font-bold text-gray-900">{fmt(todayRevenue)}</p>
+                {revenueDeltaPct !== null && (
+                  <span className={`flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                    revenueDeltaPct >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'
+                  }`}>
+                    {revenueDeltaPct >= 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                    {Math.abs(revenueDeltaPct)}%
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-400">So far today, vs {fmt(yesterdayRevenue)} all of yesterday</p>
+            </div>
+
           </div>
         </div>
       </div>
