@@ -264,6 +264,9 @@ export function DashboardPage() {
       trend:   todayRevenue > 0 ? fmt(avgOrderValue) + ' avg' : null,
       up:      true,
       hero:    false,
+      footer:  revenueDeltaPct !== null
+        ? { text: `${revenueDeltaPct >= 0 ? '↑' : '↓'} ${Math.abs(revenueDeltaPct)}% vs yesterday`, positive: revenueDeltaPct >= 0 }
+        : null,
     },
   ];
 
@@ -354,8 +357,101 @@ export function DashboardPage() {
                 </div>
                 <p className={`text-2xl font-bold leading-tight ${s.text}`}>{s.value}</p>
                 <p className={`text-xs mt-1 ${s.sub}`}>{s.label}</p>
+                {s.footer && (
+                  <p className={`text-[11px] font-semibold mt-1 ${s.footer.positive ? 'text-green-600' : 'text-red-500'}`}>
+                    {s.footer.text}
+                  </p>
+                )}
               </div>
             ))}
+          </div>
+
+          {/* ── Right now: reservations, floor status, staff ─────────────────── */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+            {/* Today's Reservations */}
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-bold text-gray-900">Today's Reservations</p>
+                <Link to="/admin/floor" className="text-xs text-orange-500 font-semibold hover:underline">View all</Link>
+              </div>
+              {upcomingReservations.length === 0 ? (
+                <p className="text-xs text-gray-300 text-center py-6">No upcoming reservations</p>
+              ) : (
+                <div className="space-y-3">
+                  {upcomingReservations.map((r) => (
+                    <div key={r.id} className="flex items-center gap-3">
+                      <div className="text-center w-14 shrink-0">
+                        <p className="text-sm font-bold text-gray-900 tabular-nums leading-tight">
+                          {new Date(r.reservedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                        <p className="text-[10px] text-orange-500 font-semibold">{fmtCountdown(minutesUntil(r.reservedAt))}</p>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-800 truncate">{r.customerName} · {r.partySize} guests</p>
+                        <p className="text-xs text-gray-400">{r.type === 'room' ? `Room ${r.roomNumber}` : `Table ${r.tableNumber}`}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Live Floor Status */}
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-bold text-gray-900">Live Floor Status</p>
+                <Link to="/admin/floor" className="text-xs text-orange-500 font-semibold hover:underline">View all</Link>
+              </div>
+              {tableStatus.length === 0 ? (
+                <p className="text-xs text-gray-300 text-center py-6">No tables set up</p>
+              ) : (
+                <>
+                  <div className="grid grid-cols-5 gap-1.5 mb-3">
+                    {tableStatus.slice(0, 10).map((t) => (
+                      <div
+                        key={t.id}
+                        className={`rounded-lg text-center text-xs font-semibold py-1.5 ${
+                          t.status === 'free'  ? 'bg-green-50 text-green-600'
+                          : t.status === 'stale' ? 'bg-red-50 text-red-600'
+                          :                        'bg-amber-50 text-amber-600'
+                        }`}
+                      >
+                        {t.number}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    <span className="font-semibold text-amber-600">{occupiedTables} occupied</span>
+                    {staleTables > 0 && <> · <span className="font-semibold text-red-600">{staleTables} needs attention</span></>}
+                    {' · '}<span className="font-semibold text-green-600">{freeTables} free</span>
+                  </p>
+                </>
+              )}
+            </div>
+
+            {/* Top Staff Today */}
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <p className="text-sm font-bold text-gray-900 mb-3">Top Staff Today</p>
+              {topStaff.length === 0 ? (
+                <p className="text-xs text-gray-300 text-center py-6">No orders assigned yet</p>
+              ) : (
+                <div className="space-y-2.5">
+                  {topStaff.map((s, i) => (
+                    <div key={s.name} className="flex items-center gap-2.5">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
+                        i === 0 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'
+                      }`}>
+                        {i + 1}
+                      </div>
+                      <p className="text-sm text-gray-800 flex-1 truncate">{s.name}</p>
+                      <p className="text-sm font-bold text-gray-900">{s.count} orders</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
 
           {/* â”€â”€ 3-column grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
@@ -667,110 +763,6 @@ export function DashboardPage() {
             </div>
           </div>
 
-          {/* ── Reservations / Floor / Staff / Revenue delta ────────────────── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
-            {/* Today's Reservations */}
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-bold text-gray-900">Today's Reservations</p>
-                <Link to="/admin/floor" className="text-xs text-orange-500 font-semibold hover:underline">View all</Link>
-              </div>
-              {upcomingReservations.length === 0 ? (
-                <p className="text-xs text-gray-300 text-center py-6">No upcoming reservations</p>
-              ) : (
-                <div className="space-y-3">
-                  {upcomingReservations.map((r) => (
-                    <div key={r.id} className="flex items-center gap-3">
-                      <div className="text-center w-14 shrink-0">
-                        <p className="text-sm font-bold text-gray-900 tabular-nums leading-tight">
-                          {new Date(r.reservedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                        <p className="text-[10px] text-orange-500 font-semibold">{fmtCountdown(minutesUntil(r.reservedAt))}</p>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-800 truncate">{r.customerName} · {r.partySize} guests</p>
-                        <p className="text-xs text-gray-400">{r.type === 'room' ? `Room ${r.roomNumber}` : `Table ${r.tableNumber}`}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Live Floor Status */}
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-bold text-gray-900">Live Floor Status</p>
-                <Link to="/admin/floor" className="text-xs text-orange-500 font-semibold hover:underline">View all</Link>
-              </div>
-              {tableStatus.length === 0 ? (
-                <p className="text-xs text-gray-300 text-center py-6">No tables set up</p>
-              ) : (
-                <>
-                  <div className="grid grid-cols-5 gap-1.5 mb-3">
-                    {tableStatus.slice(0, 10).map((t) => (
-                      <div
-                        key={t.id}
-                        className={`rounded-lg text-center text-xs font-semibold py-1.5 ${
-                          t.status === 'free'  ? 'bg-green-50 text-green-600'
-                          : t.status === 'stale' ? 'bg-red-50 text-red-600'
-                          :                        'bg-amber-50 text-amber-600'
-                        }`}
-                      >
-                        {t.number}
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    <span className="font-semibold text-amber-600">{occupiedTables} occupied</span>
-                    {staleTables > 0 && <> · <span className="font-semibold text-red-600">{staleTables} needs attention</span></>}
-                    {' · '}<span className="font-semibold text-green-600">{freeTables} free</span>
-                  </p>
-                </>
-              )}
-            </div>
-
-            {/* Top Staff Today */}
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-              <p className="text-sm font-bold text-gray-900 mb-3">Top Staff Today</p>
-              {topStaff.length === 0 ? (
-                <p className="text-xs text-gray-300 text-center py-6">No orders assigned yet</p>
-              ) : (
-                <div className="space-y-2.5">
-                  {topStaff.map((s, i) => (
-                    <div key={s.name} className="flex items-center gap-2.5">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
-                        i === 0 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'
-                      }`}>
-                        {i + 1}
-                      </div>
-                      <p className="text-sm text-gray-800 flex-1 truncate">{s.name}</p>
-                      <p className="text-sm font-bold text-gray-900">{s.count} orders</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Revenue vs Yesterday */}
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-              <p className="text-sm font-bold text-gray-900 mb-3">Revenue vs Yesterday</p>
-              <div className="flex items-baseline gap-2 mb-1">
-                <p className="text-2xl font-bold text-gray-900">{fmt(todayRevenue)}</p>
-                {revenueDeltaPct !== null && (
-                  <span className={`flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full ${
-                    revenueDeltaPct >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'
-                  }`}>
-                    {revenueDeltaPct >= 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-                    {Math.abs(revenueDeltaPct)}%
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-gray-400">So far today, vs {fmt(yesterdayRevenue)} all of yesterday</p>
-            </div>
-
-          </div>
         </div>
       </div>
 
