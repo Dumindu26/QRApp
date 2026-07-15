@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { randomUUID } from 'crypto';
 import { pool } from './database';
 
-const RESTAURANT_ID = 'bebf4749-0d25-4d81-bdf6-1fa277b51f61';
+const RESTAURANT_ID = process.env.SEED_RESTAURANT_ID ?? 'bebf4749-0d25-4d81-bdf6-1fa277b51f61';
 
 const categoryImages: Record<string, string> = {
   'Starters':      'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&w=800&q=80',

@@ -1,4 +1,4 @@
-﻿import { useEffect, useReducer, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useConfirm } from '../../components/ConfirmModal';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, UtensilsCrossed, Check, Loader2, BedDouble, Truck, Tag, X, LayoutGrid, List, Search } from 'lucide-react';
@@ -21,6 +21,10 @@ import { AdminSidebar } from '../../components/AdminSidebar';
 
 type OrderMode = 'takeaway' | 'dine-in' | 'room-service' | 'delivery';
 type Size = 'regular' | 'large';
+
+const MIN_ORDER_DETAILS_WIDTH = 280;
+const MAX_ORDER_DETAILS_WIDTH = 520;
+const DEFAULT_ORDER_DETAILS_WIDTH = 340;
 
 const toppingKey = (toppings?: SelectedTopping[]) => (toppings ?? []).map((t) => t.id).sort().join(',');
 const cartKey = (menuItemId: string, size?: Size, toppings?: SelectedTopping[]) =>
@@ -90,7 +94,16 @@ export function NewOrderPage() {
     (localStorage.getItem('qra_neworder_view') as 'grid' | 'list' | null) ?? 'grid'
   );
   const [search, setSearch] = useState(() => localStorage.getItem('qra_neworder_search') ?? '');
+  const [searchOpen, setSearchOpen] = useState(() => Boolean(localStorage.getItem('qra_neworder_search')));
+  const [orderDetailsWidth, setOrderDetailsWidth] = useState(() => {
+    const saved = Number(localStorage.getItem('qra_neworder_order_details_width'));
+    return Number.isFinite(saved)
+      ? Math.min(MAX_ORDER_DETAILS_WIDTH, Math.max(MIN_ORDER_DETAILS_WIDTH, saved))
+      : DEFAULT_ORDER_DETAILS_WIDTH;
+  });
+  const [resizingOrderDetails, setResizingOrderDetails] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const resizeStartRef = useRef({ x: 0, width: DEFAULT_ORDER_DETAILS_WIDTH });
 
   useEffect(() => {
     Promise.allSettled([
@@ -108,6 +121,43 @@ export function NewOrderPage() {
       }
     }).finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (searchOpen) searchRef.current?.focus();
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (!resizingOrderDetails) return;
+
+    function handlePointerMove(event: PointerEvent) {
+      const delta = resizeStartRef.current.x - event.clientX;
+      const nextWidth = Math.min(
+        MAX_ORDER_DETAILS_WIDTH,
+        Math.max(MIN_ORDER_DETAILS_WIDTH, resizeStartRef.current.width + delta),
+      );
+      setOrderDetailsWidth(nextWidth);
+    }
+
+    function handlePointerUp() {
+      setResizingOrderDetails(false);
+    }
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+
+    return () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [resizingOrderDetails]);
+
+  useEffect(() => {
+    localStorage.setItem('qra_neworder_order_details_width', String(Math.round(orderDetailsWidth)));
+  }, [orderDetailsWidth]);
 
   // Clear cart and selection when switching mode
   async function switchMode(m: OrderMode) {
@@ -165,6 +215,16 @@ export function NewOrderPage() {
   const filtered = items
     .filter((i) => activeCategory === 'all' || i.category === activeCategory)
     .filter((i) => !searchQ || i.name.toLowerCase().includes(searchQ) || (i.description ?? '').toLowerCase().includes(searchQ));
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of items) {
+      counts.set(item.category, (counts.get(item.category) ?? 0) + 1);
+    }
+    return counts;
+  }, [items]);
+  const activeCategoryName = activeCategory === 'all'
+    ? 'All Items'
+    : categories.find((category) => category.id === activeCategory)?.name ?? 'Items';
 
   function handleSearch(v: string) {
     setSearch(v);
@@ -237,11 +297,83 @@ export function NewOrderPage() {
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
-          <Link to="/admin" className="text-gray-600"><ArrowLeft size={20} /></Link>
-          <h1 className="text-xl font-bold text-gray-900 flex-1">New Order</h1>
+        <div className="px-3 sm:px-4 lg:px-6 py-3 flex items-center gap-2 overflow-x-auto">
+          <Link to="/admin" className="text-gray-600 shrink-0"><ArrowLeft size={20} /></Link>
+          <h1 className="text-xl font-bold text-gray-900 shrink-0 mr-2">New Order</h1>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => switchMode('takeaway')}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
+                mode === 'takeaway' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <ShoppingBag size={13} /> Takeaway
+            </button>
+            <button
+              onClick={() => switchMode('dine-in')}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
+                mode === 'dine-in' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <UtensilsCrossed size={13} /> Dine-in
+            </button>
+            <button
+              onClick={() => switchMode('room-service')}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
+                mode === 'room-service' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <BedDouble size={13} /> Room Service
+            </button>
+            <button
+              onClick={() => switchMode('delivery')}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
+                mode === 'delivery' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <Truck size={13} /> Delivery
+            </button>
+          </div>
+
+          <div className="flex-1 min-w-0" />
+
+          <div className={`relative shrink-0 transition-all duration-200 ${searchOpen ? 'w-64 lg:w-80' : 'w-9'}`}>
+            {searchOpen ? (
+              <>
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <input
+                  ref={searchRef}
+                  type="search"
+                  value={search}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape' && !search) setSearchOpen(false);
+                  }}
+                  placeholder="Search menu items..."
+                  className="w-full pl-9 pr-9 py-2 text-sm bg-gray-100 rounded-full outline-none focus:bg-white focus:ring-2 focus:ring-orange-300 transition-all placeholder:text-gray-400"
+                />
+                <button
+                  onClick={() => search ? clearSearch() : setSearchOpen(false)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-gray-400 hover:bg-gray-500 flex items-center justify-center transition-colors"
+                  title={search ? 'Clear search' : 'Close search'}
+                >
+                  <X size={11} className="text-white" />
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="w-9 h-9 rounded-full bg-gray-100 text-gray-500 hover:text-orange-500 hover:bg-orange-50 flex items-center justify-center transition-colors"
+                title="Search menu items"
+              >
+                <Search size={16} />
+              </button>
+            )}
+          </div>
+
           {/* Grid / List toggle */}
-          <div className="flex items-center bg-gray-100 rounded-full p-0.5">
+          <div className="flex items-center bg-gray-100 rounded-full p-0.5 shrink-0">
             <button
               onClick={() => { setView('grid'); localStorage.setItem('qra_neworder_view', 'grid'); }}
               className={`p-1.5 rounded-full transition-colors ${view === 'grid' ? 'bg-white shadow text-orange-500' : 'text-gray-400 hover:text-gray-600'}`}
@@ -258,91 +390,61 @@ export function NewOrderPage() {
             </button>
           </div>
         </div>
-
-        {/* Search bar */}
-        <div className="px-3 sm:px-4 lg:px-6 pb-3">
-          <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <input
-              ref={searchRef}
-              type="search"
-              value={search}
-              onChange={(e) => handleSearch(e.target.value)}
-              placeholder="Search menu items…"
-              className="w-full pl-9 pr-9 py-2 text-sm bg-gray-100 rounded-full outline-none focus:bg-white focus:ring-2 focus:ring-orange-300 transition-all placeholder:text-gray-400"
-            />
-            {search && (
-              <button
-                onClick={clearSearch}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-gray-400 hover:bg-gray-500 flex items-center justify-center transition-colors"
-              >
-                <X size={11} className="text-white" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Mode tabs */}
-        <div className="px-3 sm:px-4 lg:px-6 pb-3 flex gap-2">
-          <button
-            onClick={() => switchMode('takeaway')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              mode === 'takeaway' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <ShoppingBag size={13} /> Takeaway
-          </button>
-          <button
-            onClick={() => switchMode('dine-in')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              mode === 'dine-in' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <UtensilsCrossed size={13} /> Dine-in
-          </button>
-          <button
-            onClick={() => switchMode('room-service')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              mode === 'room-service' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <BedDouble size={13} /> Room Service
-          </button>
-          <button
-            onClick={() => switchMode('delivery')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              mode === 'delivery' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <Truck size={13} /> Delivery
-          </button>
-        </div>
-
-        {/* Category tabs */}
-        {!loading && (
-          <div className="px-3 sm:px-4 lg:px-6 pb-3 flex gap-2 overflow-x-auto">
-            <button
-              onClick={() => setActiveCategory('all')}
-              className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                activeCategory === 'all' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >All</button>
-            {categories.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setActiveCategory(c.id)}
-                className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  activeCategory === c.id ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >{c.name}</button>
-            ))}
-          </div>
-        )}
       </header>
 
-      <div className="px-3 sm:px-4 lg:px-6 py-4 flex flex-col md:flex-row gap-4 items-start">
+      <div
+        className="px-3 sm:px-4 lg:px-6 py-4 flex flex-col lg:grid gap-4 lg:gap-x-3 items-start"
+        style={{ gridTemplateColumns: `200px minmax(0, 1fr) 10px ${orderDetailsWidth}px` }}
+      >
+        {/* Categories */}
+        {!loading && (
+          <aside className="w-full lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
+            <div className="bg-white lg:rounded-2xl lg:border lg:border-gray-100 lg:shadow-sm lg:p-3">
+              <div className="hidden lg:flex items-center justify-between px-1 pb-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Categories</p>
+                <span className="text-xs font-semibold text-gray-400">{items.length}</span>
+              </div>
+              <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0">
+                <button
+                  onClick={() => setActiveCategory('all')}
+                  className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 py-2 rounded-full lg:rounded-xl text-sm font-semibold transition-colors ${
+                    activeCategory === 'all' ? 'bg-green-700 text-white shadow-sm' : 'bg-gray-100 lg:bg-gray-50 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  <span>All</span>
+                  <span className={`text-xs ${activeCategory === 'all' ? 'text-green-100' : 'text-gray-400'}`}>{items.length}</span>
+                </button>
+                {categories.map((c) => {
+                  const count = categoryCounts.get(c.id) ?? 0;
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => setActiveCategory(c.id)}
+                      className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 py-2 rounded-full lg:rounded-xl text-sm font-semibold transition-colors ${
+                        activeCategory === c.id ? 'bg-green-700 text-white shadow-sm' : 'bg-gray-100 lg:bg-gray-50 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      <span className="truncate">{c.name}</span>
+                      <span className={`text-xs ${activeCategory === c.id ? 'text-green-100' : 'text-gray-400'}`}>{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </aside>
+        )}
         {/* â”€â”€ Menu grid â”€â”€ */}
         <div className="flex-1 min-w-0">
+          {!loading && (
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-bold text-gray-900">{activeCategoryName}</h2>
+                <p className="text-xs text-gray-400">
+                  {filtered.length} {filtered.length === 1 ? 'item' : 'items'} available
+                </p>
+              </div>
+            </div>
+          )}
           {loading ? (
             <div className="flex justify-center pt-16">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
@@ -421,7 +523,7 @@ export function NewOrderPage() {
             </div>
           ) : (
             /* â”€â”€ GRID VIEW â”€â”€ */
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
               {filtered.map((item) => {
                 const hasLarge = (item.largePrice ?? 0) > 0;
                 const hasToppings = (item.toppings ?? []).some((t) => t.available);
@@ -477,8 +579,26 @@ export function NewOrderPage() {
           )}
         </div>
 
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize order details"
+          title="Drag to resize order details"
+          onPointerDown={(event) => {
+            resizeStartRef.current = { x: event.clientX, width: orderDetailsWidth };
+            setResizingOrderDetails(true);
+          }}
+          className={`hidden lg:flex h-[calc(100vh-7rem)] sticky top-24 cursor-col-resize items-stretch justify-center rounded-full transition-colors ${
+            resizingOrderDetails ? 'bg-green-100' : 'hover:bg-green-50'
+          }`}
+        >
+          <span className={`my-2 w-1 rounded-full transition-colors ${
+            resizingOrderDetails ? 'bg-green-600' : 'bg-gray-200'
+          }`} />
+        </div>
+
         {/* â”€â”€ Sidebar â”€â”€ */}
-        <div className="w-full md:w-72 lg:w-80 md:shrink-0 md:sticky md:top-40 space-y-3">
+        <div className="w-full lg:w-full md:shrink-0 md:sticky md:top-24 space-y-3">
 
           {/* Table selector  -  dine-in only */}
           {mode === 'dine-in' && (
