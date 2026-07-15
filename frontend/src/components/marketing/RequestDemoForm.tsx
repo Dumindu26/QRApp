@@ -12,14 +12,53 @@ export interface DemoRequest {
 
 const EMPTY: DemoRequest = { name: '', email: '', restaurantName: '', phone: '', message: '' };
 
+const COUNTRIES = [
+  { name: 'Sri Lanka', code: 'LK', dialCode: '+94', example: '+94 77 123 4567' },
+  { name: 'India', code: 'IN', dialCode: '+91', example: '+91 98765 43210' },
+  { name: 'United Arab Emirates', code: 'AE', dialCode: '+971', example: '+971 50 123 4567' },
+  { name: 'United Kingdom', code: 'GB', dialCode: '+44', example: '+44 7400 123456' },
+  { name: 'United States', code: 'US', dialCode: '+1', example: '+1 555 123 4567' },
+  { name: 'Australia', code: 'AU', dialCode: '+61', example: '+61 412 345 678' },
+  { name: 'Singapore', code: 'SG', dialCode: '+65', example: '+65 8123 4567' },
+  { name: 'Malaysia', code: 'MY', dialCode: '+60', example: '+60 12 345 6789' },
+  { name: 'Qatar', code: 'QA', dialCode: '+974', example: '+974 3312 3456' },
+  { name: 'Saudi Arabia', code: 'SA', dialCode: '+966', example: '+966 50 123 4567' },
+] as const;
+
+type CountryCode = typeof COUNTRIES[number]['code'];
+
 export function RequestDemoForm() {
   const [form, setForm] = useState<DemoRequest>(EMPTY);
+  const [countryCode, setCountryCode] = useState<CountryCode>('LK');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
 
+  const selectedCountry = COUNTRIES.find((country) => country.code === countryCode) ?? COUNTRIES[0];
+
   function set<K extends keyof DemoRequest>(key: K, value: DemoRequest[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function handleCountryChange(nextCode: CountryCode) {
+    const nextCountry = COUNTRIES.find((country) => country.code === nextCode) ?? COUNTRIES[0];
+    setCountryCode(nextCountry.code);
+    setForm((current) => {
+      const currentPhone = current.phone.trim();
+      const currentDialCode = selectedCountry.dialCode;
+      const knownDialCode = COUNTRIES.find((country) => currentPhone.startsWith(`${country.dialCode} `) || currentPhone === country.dialCode)?.dialCode;
+      const dialCodeToReplace = currentPhone.startsWith(currentDialCode) ? currentDialCode : knownDialCode;
+      const withoutDialCode = dialCodeToReplace
+        ? currentPhone.slice(dialCodeToReplace.length).trimStart()
+        : currentPhone.startsWith('+')
+          ? ''
+          : currentPhone;
+
+      return {
+        ...current,
+        phone: withoutDialCode ? `${nextCountry.dialCode} ${withoutDialCode}` : `${nextCountry.dialCode} `,
+      };
+    });
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -84,8 +123,32 @@ export function RequestDemoForm() {
           <input className={input} value={form.restaurantName} onChange={(e) => set('restaurantName', e.target.value)} placeholder="The Spice Garden" />
         </div>
         <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Country</label>
+          <select
+            className={input}
+            value={countryCode}
+            onChange={(e) => handleCountryChange(e.target.value as CountryCode)}
+          >
+            {COUNTRIES.map((country) => (
+              <option key={country.code} value={country.code}>
+                {country.name} ({country.dialCode})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="sm:col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone <span className="text-gray-400 font-normal">(optional)</span></label>
-          <input type="tel" className={input} value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="+94 77 123 4567" />
+          <input
+            type="tel"
+            className={input}
+            value={form.phone}
+            onChange={(e) => set('phone', e.target.value)}
+            onFocus={() => {
+              if (!form.phone.trim()) set('phone', `${selectedCountry.dialCode} `);
+            }}
+            placeholder={selectedCountry.example}
+          />
+          <p className="mt-1.5 text-xs text-gray-400">Country code updates automatically from the selected country.</p>
         </div>
       </div>
 

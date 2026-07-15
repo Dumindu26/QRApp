@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { v4 as uuid } from 'uuid';
+import { randomUUID } from 'crypto';
 import { pool } from '../db/database';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { sendEmail } from '../lib/mailer';
@@ -43,7 +43,7 @@ router.post('/', async (req, res) => {
     res.status(400).json({ error: 'Invalid email address' }); return;
   }
 
-  const id = uuid();
+  const id = randomUUID();
   await pool.query(
     `INSERT INTO demo_requests (id, name, email, restaurant_name, phone, message)
      VALUES ($1, $2, $3, $4, $5, $6)`,
