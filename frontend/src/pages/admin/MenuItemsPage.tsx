@@ -100,6 +100,10 @@ export function MenuItemsPage() {
   const [catFilter,   setCatFilter]   = useState<string>('all');
   const [availFilter, setAvailFilter] = useState<'all' | 'available' | 'unavailable'>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => (localStorage.getItem('menu-view') as 'grid' | 'list') || 'grid');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkCategory, setBulkCategory] = useState('');
+  const [bulkPricePct, setBulkPricePct] = useState('');
+  const [bulkSaving, setBulkSaving] = useState(false);
 
   const fileRef      = useRef<HTMLInputElement>(null);
   const importRef    = useRef<HTMLInputElement>(null);
@@ -281,6 +285,63 @@ export function MenuItemsPage() {
     localStorage.setItem('menu-view', mode);
   }
 
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function setFilteredSelection(checked: boolean, ids: string[]) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => {
+        if (checked) next.add(id);
+        else next.delete(id);
+      });
+      return next;
+    });
+  }
+
+  async function applyBulkUpdate(payloadFor: (item: MenuItem) => Partial<MenuItem>, successMessage: string) {
+    const selected = items.filter((item) => selectedIds.has(item.id));
+    if (selected.length === 0) return;
+    setBulkSaving(true);
+    try {
+      const updated = await Promise.all(selected.map((item) => menuService.updateItem(item.id, payloadFor(item))));
+      setItems((prev) => prev.map((item) => updated.find((u) => u.id === item.id) ?? item));
+      toast.success(successMessage);
+    } catch {
+      toast.error('Bulk update failed');
+    } finally {
+      setBulkSaving(false);
+    }
+  }
+
+  async function bulkSetAvailability(available: boolean) {
+    await applyBulkUpdate(() => ({ available }), `${selectedIds.size} item${selectedIds.size !== 1 ? 's' : ''} updated`);
+  }
+
+  async function bulkApplyCategory() {
+    if (!bulkCategory) return toast.error('Choose a category first');
+    await applyBulkUpdate(() => ({ category: bulkCategory }), 'Category updated');
+    setBulkCategory('');
+  }
+
+  async function bulkApplyPricePct() {
+    const pct = Number(bulkPricePct);
+    if (!Number.isFinite(pct) || pct === 0) return toast.error('Enter a price percentage');
+    const multiplier = 1 + pct / 100;
+    if (multiplier <= 0) return toast.error('Price adjustment is too low');
+    await applyBulkUpdate((item) => ({
+      price: Math.max(0, Math.round(item.price * multiplier * 100) / 100),
+      largePrice: item.largePrice != null ? Math.max(0, Math.round(item.largePrice * multiplier * 100) / 100) : item.largePrice,
+    }), pct > 0 ? `Prices increased by ${pct}%` : `Prices reduced by ${Math.abs(pct)}%`);
+    setBulkPricePct('');
+  }
+
 
   async function addTopping(itemId: string) {
     const data = newTopping[itemId];
@@ -411,6 +472,9 @@ export function MenuItemsPage() {
   });
 
   const isFiltered = !!q || catFilter !== 'all' || availFilter !== 'all';
+  const filteredIds = filteredItems.map((item) => item.id);
+  const selectedItems = items.filter((item) => selectedIds.has(item.id));
+  const allFilteredSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
 
   // Shared field styles for the edit/create modal
   const labelCls = 'text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block';
@@ -423,24 +487,24 @@ export function MenuItemsPage() {
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       <AdminHeader title="Menu" backTo="/admin" />
 
-      {/* Tab bar (pill style) — with the items action toolbar on the same row */}
-      <div className="flex items-center gap-2 bg-white shadow-sm px-3 sm:px-4 lg:px-6 pt-3 pb-3">
-        <div className="flex gap-2 overflow-x-auto">
+      {/* Tab bar — with the items action toolbar on the same row */}
+      <div className="flex items-center gap-2 bg-white border-b border-gray-100 px-3 sm:px-4 lg:px-6 pt-2">
+        <div className="flex gap-1 overflow-x-auto">
           {MENU_TABS.map((tab) => {
             const active = activeTab === tab.id;
             const count = tab.id === 'items' ? items.length : tab.id === 'setup' ? categories.length : null;
             return (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${
+                className={`shrink-0 flex items-center gap-2 px-3 py-2 border-b-2 text-sm font-semibold transition-colors whitespace-nowrap ${
                   active
-                    ? 'bg-orange-500 text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                    ? 'border-orange-500 text-orange-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                 }`}>
                 <tab.Icon size={15} />
                 {tab.label}
                 {count != null && (
                   <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
-                    active ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'
+                    active ? 'text-orange-500' : 'text-gray-400'
                   }`}>{count}</span>
                 )}
               </button>
@@ -456,7 +520,8 @@ export function MenuItemsPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Preview menu as customer"
-                className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-colors"
+                aria-label="Preview menu as customer"
+                className="min-h-10 min-w-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
               >
                 <ExternalLink size={17} />
               </a>
@@ -464,19 +529,19 @@ export function MenuItemsPage() {
             <button
               onClick={() => setReorderMode((m) => !m)}
               title={reorderMode ? 'Done reordering' : 'Drag to reorder items'}
-              className={`p-2 rounded-xl transition-colors ${reorderMode ? 'bg-orange-100 text-orange-600' : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50'}`}
+              className={`p-2 rounded-lg transition-colors ${reorderMode ? 'bg-orange-50 text-orange-600' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'}`}
             >
               <GripVertical size={17} />
             </button>
-            <button onClick={handleExport} title="Export CSV" className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors">
+            <button onClick={handleExport} title="Export CSV" className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors">
               <Download size={17} />
             </button>
             <button onClick={() => importRef.current?.click()} disabled={importing} title="Import CSV"
-              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors disabled:opacity-50">
+              className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50">
               {importing ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
             </button>
             <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
-            <button onClick={openNew} className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors whitespace-nowrap">
+            <button onClick={openNew} className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors whitespace-nowrap">
               <Plus size={14} /> Add Item
             </button>
           </div>
@@ -490,46 +555,56 @@ export function MenuItemsPage() {
       {activeTab === 'items' && <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
 
         {/* â”€â”€ Search & filter bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3 flex flex-wrap gap-2 items-center">
+        <div className="bg-white border border-gray-100 rounded-lg px-3 py-2 flex flex-wrap gap-2 items-end">
           {/* Text search */}
-          <div className="relative flex-1 min-w-[160px]">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <input
-              type="text"
-              value={searchQ}
-              onChange={(e) => setSearchQ(e.target.value)}
-              placeholder="Search by name or category…"
-              className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-1 focus:ring-orange-300"
-            />
-            {searchQ && (
-              <button onClick={() => setSearchQ('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
-                <X size={13} />
-              </button>
-            )}
+          <div className="flex flex-1 min-w-[180px] flex-col gap-1">
+            <label htmlFor="menu-item-search" className="text-xs font-semibold text-gray-500">Search</label>
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <input
+                id="menu-item-search"
+                type="text"
+                value={searchQ}
+                onChange={(e) => setSearchQ(e.target.value)}
+                placeholder="Name or category"
+                className="w-full pl-8 pr-8 py-1.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-orange-300"
+              />
+              {searchQ && (
+                <button onClick={() => setSearchQ('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500" aria-label="Clear menu search">
+                  <X size={13} />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Category filter */}
-          <select
-            value={catFilter}
-            onChange={(e) => setCatFilter(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-orange-300 text-gray-600 bg-white"
-          >
-            <option value="all">All categories</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+          <label className="flex flex-col gap-1 text-xs font-semibold text-gray-500">
+            Category
+            <select
+              value={catFilter}
+              onChange={(e) => setCatFilter(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-orange-300 text-gray-600 bg-white"
+            >
+              <option value="all">All categories</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </label>
 
           {/* Availability filter */}
-          <select
-            value={availFilter}
-            onChange={(e) => setAvailFilter(e.target.value as typeof availFilter)}
-            className="border border-gray-200 rounded-xl px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-orange-300 text-gray-600 bg-white"
-          >
-            <option value="all">All availability</option>
-            <option value="available">Available</option>
-            <option value="unavailable">Unavailable</option>
-          </select>
+          <label className="flex flex-col gap-1 text-xs font-semibold text-gray-500">
+            Availability
+            <select
+              value={availFilter}
+              onChange={(e) => setAvailFilter(e.target.value as typeof availFilter)}
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-orange-300 text-gray-600 bg-white"
+            >
+              <option value="all">All availability</option>
+              <option value="available">Available</option>
+              <option value="unavailable">Unavailable</option>
+            </select>
+          </label>
 
           {/* Active filter summary */}
           {isFiltered && (
@@ -544,24 +619,97 @@ export function MenuItemsPage() {
             </div>
           )}
 
-          {/* View toggle: grid / list */}
-          <div className="ml-auto flex items-center bg-gray-100 rounded-xl p-0.5">
+          {/* View toggle: image cards / admin table */}
+          <div className="ml-auto flex items-center bg-gray-50 border border-gray-200 rounded-lg p-0.5">
             <button
               onClick={() => changeView('grid')}
-              title="Grid view"
-              className={`p-1.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+              title="Image card view"
+              aria-label="Show menu items as image cards"
+              className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white text-orange-600' : 'text-gray-400 hover:text-gray-600'}`}
             >
               <LayoutGrid size={16} />
             </button>
             <button
               onClick={() => changeView('list')}
-              title="List view"
-              className={`p-1.5 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+              title="Admin table view"
+              aria-label="Show menu items as admin table"
+              className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white text-orange-600' : 'text-gray-400 hover:text-gray-600'}`}
             >
               <List size={16} />
             </button>
           </div>
         </div>
+
+        {!reorderMode && activeTab === 'items' && selectedItems.length > 0 && (
+          <div className="bg-white border border-orange-100 rounded-lg px-3 py-2 flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-gray-800">{selectedItems.length} selected</span>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="text-xs text-gray-400 hover:text-gray-700"
+              disabled={bulkSaving}
+            >
+              Clear
+            </button>
+            <div className="h-5 w-px bg-gray-200 hidden sm:block" />
+            <button
+              onClick={() => bulkSetAvailability(true)}
+              disabled={bulkSaving}
+              className="px-2.5 py-1.5 rounded-lg border border-green-200 text-green-700 text-xs font-semibold hover:bg-green-50 disabled:opacity-50"
+            >
+              Set Available
+            </button>
+            <button
+              onClick={() => bulkSetAvailability(false)}
+              disabled={bulkSaving}
+              className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-50 disabled:opacity-50"
+            >
+              Set Unavailable
+            </button>
+            <label className="flex flex-col gap-1 text-xs font-semibold text-gray-500">
+              Move to
+              <select
+                value={bulkCategory}
+                onChange={(e) => setBulkCategory(e.target.value)}
+                disabled={bulkSaving}
+                className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-orange-300 text-gray-600 bg-white"
+              >
+                <option value="">Move to category...</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </label>
+            <button
+              onClick={bulkApplyCategory}
+              disabled={bulkSaving || !bulkCategory}
+              className="px-2.5 py-1.5 rounded-lg bg-gray-900 text-white text-xs font-semibold hover:bg-gray-800 disabled:opacity-50"
+            >
+              Apply
+            </button>
+            <div className="flex items-end gap-1">
+              <label className="flex flex-col gap-1 text-xs font-semibold text-gray-500">
+                Price %
+              <input
+                type="number"
+                step="0.1"
+                value={bulkPricePct}
+                onChange={(e) => setBulkPricePct(e.target.value)}
+                disabled={bulkSaving}
+                placeholder="+/- %"
+                className="w-20 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-orange-300"
+              />
+              </label>
+              <button
+                onClick={bulkApplyPricePct}
+                disabled={bulkSaving || !bulkPricePct}
+                className="px-2.5 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600 disabled:opacity-50"
+              >
+                Update Price
+              </button>
+            </div>
+            {bulkSaving && <Loader2 size={14} className="animate-spin text-orange-500" />}
+          </div>
+        )}
 
 
         {/* â”€â”€ Reorder mode: categorised sortable list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
@@ -975,63 +1123,75 @@ export function MenuItemsPage() {
         </div>
         )}
 
-        {/* â”€â”€ List / table view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* Compact admin table */}
         {!reorderMode && filteredItems.length > 0 && viewMode === 'list' && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[980px] text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  <th className="px-4 py-3 w-14">Item</th>
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3 hidden md:table-cell">Category</th>
-                  <th className="px-4 py-3 text-right">Price</th>
-                  <th className="px-4 py-3 hidden lg:table-cell">Stock</th>
-                  <th className="px-4 py-3 text-center">Status</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+                  <th className="px-3 py-2 w-10">
+                    <input
+                      type="checkbox"
+                      checked={allFilteredSelected}
+                      onChange={(e) => setFilteredSelection(e.target.checked, filteredIds)}
+                      className="rounded border-gray-300 text-orange-500 focus:ring-orange-300"
+                      aria-label="Select all filtered items"
+                    />
+                  </th>
+                  <th className="px-3 py-2">Item</th>
+                  <th className="px-3 py-2">Category</th>
+                  <th className="px-3 py-2 text-right">Price</th>
+                  <th className="px-3 py-2 text-center">Extras</th>
+                  <th className="px-3 py-2 text-center">Modifiers</th>
+                  <th className="px-3 py-2">Stock</th>
+                  <th className="px-3 py-2 text-center">Status</th>
+                  <th className="px-3 py-2 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredItems.map((item) => {
                   const catName = categories.find((c) => c.id === item.category)?.name ?? item.category;
+                  const modifierCount = (item.modifierGroups ?? []).reduce((sum, group) => sum + group.options.length, 0);
+                  const selected = selectedIds.has(item.id);
                   return (
-                  <tr key={item.id} className="hover:bg-gray-50/70 transition-colors">
-                    {/* Image */}
-                    <td className="px-4 py-2.5">
-                      {item.image
-                        ? <img src={item.image} alt={item.name} className="w-10 h-10 rounded-lg object-cover" />
-                        : <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center text-lg">🍽️</div>}
+                  <tr key={item.id} className={`transition-colors ${selected ? 'bg-orange-50/60' : 'hover:bg-gray-50/70'}`}>
+                    <td className="px-3 py-2">
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => toggleSelected(item.id)}
+                        className="rounded border-gray-300 text-orange-500 focus:ring-orange-300"
+                        aria-label={`Select ${item.name}`}
+                      />
                     </td>
-                    {/* Name + tags */}
-                    <td className="px-4 py-2.5">
-                      <div className="font-medium text-gray-900 flex items-center gap-1.5 flex-wrap">
-                        {item.name}
-                        {item.discountPct > 0 && (
-                          <span className="text-[10px] bg-red-500 text-white font-bold px-1.5 py-0.5 rounded-full">{item.discountPct}% OFF</span>
+                    <td className="px-3 py-2">
+                      <div className="flex items-start gap-2">
+                        {item.image ? (
+                          <img src={item.image} alt={item.name} className="w-8 h-8 rounded-md object-cover shrink-0" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-md bg-orange-50 flex items-center justify-center text-sm shrink-0">🍽️</div>
                         )}
-                        {item.scheduleId && (() => {
-                          const sch = schedules.find((s) => s.id === item.scheduleId);
-                          return sch ? <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">⏰ {sch.name}</span> : null;
-                        })()}
-                      </div>
-                      {(item.tags ?? []).length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {item.tags!.map((slug) => {
-                            const tag = tags.find((t) => t.slug === slug);
-                            return tag ? (
-                              <span key={slug} className={`inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${tagPillCls(tag.category)}`}>
-                                {tag.emoji} {tag.label}
-                              </span>
-                            ) : null;
-                          })}
+                        <div className="min-w-0">
+                          <div className="font-semibold text-gray-900 flex items-center gap-1.5">
+                            <span className="truncate max-w-[260px]">{item.name}</span>
+                            {!item.available && <span className="text-[10px] text-gray-400">Off</span>}
+                            {item.discountPct > 0 && (
+                              <span className="text-[10px] bg-red-500 text-white font-bold px-1.5 py-0.5 rounded-full">{item.discountPct}% OFF</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-gray-400">
+                            {item.prepTimeMins != null && <span>{item.prepTimeMins}m prep</span>}
+                            {item.scheduleId && (() => {
+                              const sch = schedules.find((s) => s.id === item.scheduleId);
+                              return sch ? <span>{sch.name}</span> : null;
+                            })()}
+                          </div>
                         </div>
-                      )}
-                      <span className="md:hidden text-xs text-gray-400">{catName}</span>
+                      </div>
                     </td>
-                    {/* Category */}
-                    <td className="px-4 py-2.5 hidden md:table-cell text-gray-500">{catName}</td>
-                    {/* Price */}
-                    <td className="px-4 py-2.5 text-right whitespace-nowrap tabular-nums">
+                    <td className="px-3 py-2 text-gray-500">{catName}</td>
+                    <td className="px-3 py-2 text-right whitespace-nowrap tabular-nums">
                       {item.discountPct > 0 ? (
                         <span className="flex items-center justify-end gap-1">
                           <span className="text-gray-400 line-through text-xs">{fmt(item.price)}</span>
@@ -1044,8 +1204,17 @@ export function MenuItemsPage() {
                         <span className="block text-[11px] text-gray-400">L {fmt(item.largePrice)}</span>
                       )}
                     </td>
-                    {/* Stock */}
-                    <td className="px-4 py-2.5 hidden lg:table-cell">
+                    <td className="px-3 py-2 text-center">
+                      <span className="text-xs font-semibold text-gray-600">
+                        {(item.toppings ?? []).length}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <span className="text-xs font-semibold text-gray-600">
+                        {(item.modifierGroups ?? []).length} groups · {modifierCount} opts
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
                       {!item.trackStock ? (
                         <span className="text-xs text-gray-300"> - </span>
                       ) : editingStock?.id === item.id ? (
@@ -1074,21 +1243,19 @@ export function MenuItemsPage() {
                         </button>
                       )}
                     </td>
-                    {/* Status toggle */}
-                    <td className="px-4 py-2.5 text-center">
+                    <td className="px-3 py-2 text-center">
                       <button
                         onClick={() => toggleAvailable(item)}
                         title={item.available ? 'Available  -  click to disable' : 'Unavailable  -  click to enable'}
-                        className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full transition-colors ${
-                          item.available ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md transition-colors ${
+                          item.available ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                         }`}
                       >
                         {item.available ? <Eye size={12} /> : <EyeOff size={12} />}
                         {item.available ? 'On' : 'Off'}
                       </button>
                     </td>
-                    {/* Actions */}
-                    <td className="px-4 py-2.5">
+                    <td className="px-3 py-2">
                       <div className="flex items-center justify-end gap-0.5">
                         <button onClick={() => openEdit(item)} className="text-gray-400 hover:text-blue-500 transition-colors p-1.5" title="Edit"><Pencil size={14} /></button>
                         <button onClick={() => setRecipeItem(item)} className="text-gray-400 hover:text-green-500 transition-colors p-1.5" title="Recipe"><FlaskConical size={14} /></button>

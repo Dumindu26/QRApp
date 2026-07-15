@@ -63,7 +63,7 @@ export function InstallPrompt() {
             <Share size={20} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-gray-900 text-sm">Install QRA App</p>
+            <p className="font-semibold text-gray-900 text-sm">Install Order Live</p>
             <p className="text-xs text-gray-500 mt-1 leading-relaxed">
               Tap the{' '}
               <span className="inline-flex items-center gap-0.5 font-medium text-gray-700">
@@ -90,7 +90,7 @@ export function InstallPrompt() {
         <Download size={20} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-gray-900 text-sm">Install QRA App</p>
+        <p className="font-semibold text-gray-900 text-sm">Install Order Live</p>
         <p className="text-xs text-gray-500 mt-0.5">Add to home screen for quick access</p>
       </div>
       <button

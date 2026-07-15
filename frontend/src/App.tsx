@@ -235,6 +235,7 @@ export default function App() {
             <Route path="/order-history/:tableId" element={<OrderHistoryPage />} />
             <Route path="/my-orders" element={<PhoneLookupPage />} />
             <Route path="/takeaway/:restaurantId" element={<TakeawayMenuPage />} />
+            <Route path="/delivery/:restaurantId" element={<TakeawayMenuPage />} />
             <Route path="/room/:roomId" element={<RoomMenuPage />} />
             <Route path="/display/:token" element={<PromoDisplayPage />} />
 

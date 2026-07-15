@@ -20,6 +20,7 @@ import { WelcomeScreen } from '../../components/WelcomeScreen';
 import { useNavMode } from '../../context/NavModeContext';
 
 type TabId = 'account' | 'preferences' | 'restaurant' | 'receipt' | 'operations' | 'branding' | 'login' | 'printers';
+type SectionTone = 'ok' | 'warning' | 'neutral' | 'dirty';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -56,6 +57,13 @@ const ALL_TAB_IDS: TabId[] = TABS.map((t) => t.id);
 
 // Tabs that persist instantly (no sticky save bar needed).
 const INSTANT_TABS: TabId[] = ['preferences'];
+
+const toneClass: Record<SectionTone, string> = {
+  ok: 'bg-green-50 text-green-700 border-green-100',
+  warning: 'bg-amber-50 text-amber-700 border-amber-100',
+  neutral: 'bg-gray-50 text-gray-600 border-gray-100',
+  dirty: 'bg-orange-50 text-orange-700 border-orange-100',
+};
 
 export function SettingsPage() {
   const { user, updateProfile, logout } = useAuth();
@@ -636,6 +644,75 @@ export function SettingsPage() {
     login:       loginSaving,
     printers:    printerSaving,
   };
+
+  function sectionSummary(tab: TabId): { label: string; detail: string; tone: SectionTone } {
+    if (isDirty[tab]) {
+      return { label: `${TABS.find((t) => t.id === tab)?.label ?? 'Section'}: unsaved changes`, detail: 'Use the save area below when ready.', tone: 'dirty' };
+    }
+
+    switch (tab) {
+      case 'account':
+        return {
+          label: user?.username ? 'Account: configured' : 'Account: missing username',
+          detail: user?.username ? `Signed in as @${user.username}` : 'Add a username before saving account changes.',
+          tone: user?.username ? 'ok' : 'warning',
+        };
+      case 'preferences':
+        return {
+          label: 'Preferences: applied instantly',
+          detail: `${navMode === 'sidebar' ? 'Sidebar navigation' : 'Launcher navigation'} · ${dark ? 'Dark mode' : 'Light mode'}`,
+          tone: 'neutral',
+        };
+      case 'restaurant':
+        return {
+          label: restaurantName.trim() ? 'Restaurant: configured' : 'Restaurant: missing name',
+          detail: `${currency || 'Currency not set'} · ${payMethods.length} payment method${payMethods.length !== 1 ? 's' : ''}`,
+          tone: restaurantName.trim() ? 'ok' : 'warning',
+        };
+      case 'receipt': {
+        const hasCustomText = Boolean(receiptHeaderLine1.trim() || receiptHeaderLine2.trim() || receiptFooterLine1.trim() || receiptFooterLine2.trim());
+        return {
+          label: hasCustomText ? 'Receipt: configured' : 'Receipt: default layout',
+          detail: `${receiptShowOrderNo ? 'Order number on' : 'Order number off'} · ${receiptShowUnitPrice ? 'unit prices on' : 'unit prices off'}`,
+          tone: hasCustomText ? 'ok' : 'neutral',
+        };
+      }
+      case 'operations':
+        return {
+          label: 'Operations: configured',
+          detail: `${timezone || 'Timezone not set'} · ${rsEnabled ? 'room service scheduled' : 'room service off'}`,
+          tone: 'ok',
+        };
+      case 'branding': {
+        const socialCount = [facebookUrl, instagramUrl, tiktokUrl, whatsappUrl, youtubeUrl, twitterUrl].filter((v) => v.trim()).length;
+        const hasWelcome = Boolean(welcomeImageUrl || welcomeHeading.trim() || welcomeTagline.trim());
+        return {
+          label: hasWelcome || socialCount > 0 ? 'Branding: configured' : 'Branding: basic',
+          detail: `${hasWelcome ? 'welcome screen set' : 'no welcome media'} · ${socialCount} social link${socialCount !== 1 ? 's' : ''}`,
+          tone: hasWelcome || socialCount > 0 ? 'ok' : 'neutral',
+        };
+      }
+      case 'login': {
+        const mediaCount = loginMedia.length + (loginVideoUrl.trim() ? 1 : 0);
+        return {
+          label: mediaCount > 0 ? 'Login page: configured' : 'Login page: default',
+          detail: mediaCount > 0 ? `${mediaCount} media item${mediaCount !== 1 ? 's' : ''}` : 'Uses the standard login screen.',
+          tone: mediaCount > 0 ? 'ok' : 'neutral',
+        };
+      }
+      case 'printers': {
+        const missing = [
+          !receiptPrinterIp.trim() ? 'receipt printer' : '',
+          !kitchenPrinterIp.trim() ? 'kitchen printer' : '',
+        ].filter(Boolean);
+        return {
+          label: missing.length === 0 ? 'Printers: configured' : `Printers: missing ${missing.join(' and ')}`,
+          detail: `${printerType === 'epson' ? 'Epson / ESC-POS' : 'Star Micronics'} · ${autoPrintKitchen || autoPrintReceipt ? 'auto-print enabled' : 'manual print only'}`,
+          tone: missing.length === 0 ? 'ok' : 'warning',
+        };
+      }
+    }
+  }
 
   // ── Tab content renderers ──────────────────────────────────────────────────
 
@@ -1619,7 +1696,7 @@ export function SettingsPage() {
               }}
               followUsLabel="Follow us"
               ctaLabel="View Menu"
-              poweredByLabel="Powered by QRApp"
+              poweredByLabel="Powered by Order Live"
               onEnter={() => {}}
               contained
             />
@@ -1839,155 +1916,211 @@ export function SettingsPage() {
     printers:    renderPrintersTab,
   };
 
+  const activeSummary = sectionSummary(activeTab);
+  const activeTabLabel = TABS.find((tab) => tab.id === activeTab)?.label ?? 'Settings';
+
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
 
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0 flex flex-col">
         <AdminHeader title="Settings" subtitle="Manage your restaurant configuration" />
-        <div className="w-full px-4 sm:px-6 py-6 space-y-4 flex-1">
+        <div className="w-full px-4 sm:px-6 py-6 flex-1">
+          <div className="flex flex-col lg:flex-row gap-5 items-start">
+            {/* ── Settings menu ───────────────────────────────────────────── */}
+            <nav className="w-full lg:w-56 lg:sticky lg:top-6 lg:flex-shrink-0" aria-label="Settings sections">
+              <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0">
+                {TABS.map((tab) => {
+                  const active = activeTab === tab.id;
+                  const dirty = isDirty[tab.id];
+                  const summary = sectionSummary(tab.id);
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`relative flex items-start gap-2 min-w-max lg:min-w-0 lg:w-full px-4 py-2.5 text-sm font-semibold whitespace-nowrap rounded-xl transition-colors ${
+                        active
+                          ? 'bg-orange-500 text-white shadow-sm'
+                          : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-50'
+                      }`}
+                    >
+                      <tab.Icon size={16} className="flex-shrink-0 mt-0.5" />
+                      <span className="flex-1 text-left">
+                        <span className="block">{tab.label}</span>
+                        <span className={`hidden lg:block mt-0.5 text-[11px] font-medium leading-snug whitespace-normal ${active ? 'text-white/75' : 'text-gray-400'}`}>
+                          {summary.label.replace(`${tab.label}: `, '')}
+                        </span>
+                      </span>
+                      {dirty && (
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full mt-1.5 ${active ? 'bg-white' : 'bg-amber-500'}`}
+                          aria-label="unsaved changes"
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
 
-          {/* ── Hero profile card ──────────────────────────────────────────── */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-6 text-white shadow-lg shadow-orange-200">
-            {/* Optional banner background image */}
-            {restaurant?.bannerImage && (
-              <>
-                <img src={restaurant.bannerImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/45 to-black/30" />
-              </>
-            )}
-
-            {/* Banner controls */}
-            <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
-              <label className="cursor-pointer flex items-center gap-1.5 bg-black/25 hover:bg-black/40 backdrop-blur text-white text-xs font-medium px-3 py-1.5 rounded-full transition-colors">
-                {bannerUploading
-                  ? <Loader2 size={13} className="animate-spin" />
-                  : <ImagePlus size={13} />}
-                {restaurant?.bannerImage ? 'Change banner' : 'Add banner'}
-                <input type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} disabled={bannerUploading} />
-              </label>
-              {restaurant?.bannerImage && (
-                <button
-                  onClick={handleBannerRemove}
-                  className="w-7 h-7 rounded-full bg-black/25 hover:bg-black/40 flex items-center justify-center transition-colors"
-                  title="Remove banner"
+              <div className="mt-5 hidden lg:block space-y-3">
+                <Link
+                  to="/admin/users"
+                  className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white px-3 py-3 shadow-sm transition-colors hover:bg-gray-50"
                 >
-                  <X size={13} className="text-white" />
-                </button>
-              )}
-            </div>
-
-            <div className="relative flex items-center gap-5">
-              {/* Logo / avatar */}
-              <label className="relative cursor-pointer group flex-shrink-0">
-                <div className="w-20 h-20 rounded-2xl overflow-hidden bg-white/20 backdrop-blur border-2 border-white/40 flex items-center justify-center shadow-inner">
-                  {restaurant?.logo
-                    ? <img src={restaurant.logo} alt="logo" className="w-full h-full object-contain" />
-                    : <span className="text-white font-bold text-3xl">{user?.name.charAt(0).toUpperCase()}</span>}
-                </div>
-                <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                  {logoUploading
-                    ? <Loader2 size={18} className="animate-spin text-white" />
-                    : <><ImagePlus size={18} className="text-white" /><span className="text-white text-[10px] font-medium">Upload</span></>}
-                </div>
-                <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
-              </label>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <p className="text-xl font-bold truncate drop-shadow">{user?.name}</p>
-                <p className="text-sm text-orange-100 truncate drop-shadow">@{user?.username}</p>
-                {restaurant && (
-                  <div className="mt-2 inline-flex items-center gap-1.5 bg-white/20 backdrop-blur rounded-full px-3 py-1">
-                    <span className="text-xs font-medium text-white truncate">{restaurant.name}</span>
+                  <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+                    <Users size={17} className="text-purple-500" />
                   </div>
-                )}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-gray-800 text-sm truncate">Manage Users</p>
+                    <p className="text-xs text-gray-400 leading-snug">Admin &amp; kitchen accounts</p>
+                  </div>
+                  <ChevronRight size={15} className="text-gray-300 flex-shrink-0" />
+                </Link>
+
+                <button
+                  onClick={() => { logout(); navigate('/', { replace: true }); }}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-red-200 px-3 py-3 text-sm font-semibold text-red-500 transition-colors hover:bg-red-50"
+                >
+                  <LogOut size={16} />
+                  Log out
+                </button>
+              </div>
+            </nav>
+
+            <div className="w-full min-w-0 space-y-4">
+              {activeTab === 'account' && (
+                <div className="relative overflow-hidden bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-6 text-white shadow-lg shadow-orange-200">
+                  {/* Optional banner background image */}
+                  {restaurant?.bannerImage && (
+                    <>
+                      <img src={restaurant.bannerImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/45 to-black/30" />
+                    </>
+                  )}
+
+                  {/* Banner controls */}
+                  <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+                    <label className="cursor-pointer flex items-center gap-1.5 bg-black/25 hover:bg-black/40 backdrop-blur text-white text-xs font-medium px-3 py-1.5 rounded-full transition-colors">
+                      {bannerUploading
+                        ? <Loader2 size={13} className="animate-spin" />
+                        : <ImagePlus size={13} />}
+                      {restaurant?.bannerImage ? 'Change banner' : 'Add banner'}
+                      <input type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} disabled={bannerUploading} />
+                    </label>
+                    {restaurant?.bannerImage && (
+                      <button
+                        onClick={handleBannerRemove}
+                        className="w-7 h-7 rounded-full bg-black/25 hover:bg-black/40 flex items-center justify-center transition-colors"
+                        title="Remove banner"
+                      >
+                        <X size={13} className="text-white" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="relative flex items-center gap-5">
+                    {/* Logo / avatar */}
+                    <label className="relative cursor-pointer group flex-shrink-0">
+                      <div className="w-20 h-20 rounded-2xl overflow-hidden bg-white/20 backdrop-blur border-2 border-white/40 flex items-center justify-center shadow-inner">
+                        {restaurant?.logo
+                          ? <img src={restaurant.logo} alt="logo" className="w-full h-full object-contain" />
+                          : <span className="text-white font-bold text-3xl">{user?.name.charAt(0).toUpperCase()}</span>}
+                      </div>
+                      <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                        {logoUploading
+                          ? <Loader2 size={18} className="animate-spin text-white" />
+                          : <><ImagePlus size={18} className="text-white" /><span className="text-white text-[10px] font-medium">Upload</span></>}
+                      </div>
+                      <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
+                    </label>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xl font-bold truncate drop-shadow">{user?.name}</p>
+                      <p className="text-sm text-orange-100 truncate drop-shadow">@{user?.username}</p>
+                      {restaurant && (
+                        <div className="mt-2 inline-flex items-center gap-1.5 bg-white/20 backdrop-blur rounded-full px-3 py-1">
+                          <span className="text-xs font-medium text-white truncate">{restaurant.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {!restaurant?.bannerImage && (
+                    <p className="relative text-xs text-orange-200 mt-3 text-center">
+                      Add a banner image to personalise this header
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className={`rounded-2xl border px-4 py-3 ${toneClass[activeSummary.tone]}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                  <div>
+                    <p className="text-sm font-semibold">{activeSummary.label}</p>
+                    <p className="text-xs opacity-80">{activeSummary.detail}</p>
+                  </div>
+                  {!INSTANT_TABS.includes(activeTab) && (
+                    <p className="text-xs font-medium opacity-75">
+                      One save area for {activeTabLabel.toLowerCase()}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* ── Tab content ───────────────────────────────────────────── */}
+              {tabContentMap[activeTab]()}
+
+              {/* ── Footer links (kept below content on compact screens) ──── */}
+              <div className="pt-4 space-y-3 lg:hidden">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
+                  <Link
+                    to="/admin/users"
+                    className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+                      <Users size={17} className="text-purple-500" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-800 text-sm">Manage Users</p>
+                      <p className="text-xs text-gray-400">Add, edit or remove admin &amp; kitchen accounts</p>
+                    </div>
+                    <ChevronRight size={16} className="text-gray-300" />
+                  </Link>
+                </div>
+
+                <button
+                  onClick={() => { logout(); navigate('/', { replace: true }); }}
+                  className="w-full flex items-center justify-center gap-2 border border-red-200 text-red-500 hover:bg-red-50 py-3.5 rounded-2xl text-sm font-semibold transition-colors"
+                >
+                  <LogOut size={16} />
+                  Log out of this device
+                </button>
+
+                <div className="h-4" />
               </div>
             </div>
-
-            {!restaurant?.bannerImage && (
-              <p className="relative text-xs text-orange-200 mt-3 text-center">
-                Add a banner image to personalise this header
-              </p>
-            )}
-          </div>
-
-          {/* ── Tab bar (rounded pills, wrap so every tab stays visible) ──── */}
-          <div className="flex flex-wrap gap-2 mb-6">
-            {TABS.map((tab) => {
-              const active = activeTab === tab.id;
-              const dirty = isDirty[tab.id];
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`relative flex items-center gap-2 px-4 py-1.5 text-sm font-semibold whitespace-nowrap rounded-full transition-colors ${
-                    active
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  <tab.Icon size={15} />
-                  {tab.label}
-                  {dirty && (
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-white' : 'bg-amber-500'}`}
-                      aria-label="unsaved changes"
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* ── Tab content ───────────────────────────────────────────────── */}
-          {tabContentMap[activeTab]()}
-
-          {/* ── Footer links (always visible below tab content) ───────────── */}
-          <div className="pt-4 space-y-3">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
-              <Link
-                to="/admin/users"
-                className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors"
-              >
-                <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
-                  <Users size={17} className="text-purple-500" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-semibold text-gray-800 text-sm">Manage Users</p>
-                  <p className="text-xs text-gray-400">Add, edit or remove admin &amp; kitchen accounts</p>
-                </div>
-                <ChevronRight size={16} className="text-gray-300" />
-              </Link>
-            </div>
-
-            <button
-              onClick={() => { logout(); navigate('/', { replace: true }); }}
-              className="w-full flex items-center justify-center gap-2 border border-red-200 text-red-500 hover:bg-red-50 py-3.5 rounded-2xl text-sm font-semibold transition-colors"
-            >
-              <LogOut size={16} />
-              Log out of this device
-            </button>
-
-            <div className="h-4" />
           </div>
 
         </div>
 
         {/* ── Sticky save bar (unified across every editable tab) ───────────── */}
         {isDirty[activeTab] && !INSTANT_TABS.includes(activeTab) && (
-          <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex items-center justify-between shadow-md">
-            <p className="flex items-center gap-2 text-sm text-gray-500">
-              <span className="w-2 h-2 rounded-full bg-amber-500" />
-              You have unsaved changes
-            </p>
+          <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex items-center justify-between gap-4 shadow-md">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                Save {activeTabLabel} changes
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">All changes in this section save together.</p>
+            </div>
             <button
               onClick={handleStickyBarSave}
               disabled={savingByTab[activeTab]}
-              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors"
+              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors shrink-0"
             >
               {savingByTab[activeTab] && <Loader2 size={14} className="animate-spin" />}
-              Save Changes
+              Save Section
             </button>
           </div>
         )}

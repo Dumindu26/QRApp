@@ -32,12 +32,12 @@ const NAV: NavItem[] = [
   { type: 'item', label: 'Dashboard',    icon: LayoutDashboard, to: '/admin',              exact: true },
   { type: 'item', label: 'Orders',       icon: ShoppingCart,    to: '/admin/orders',        badge: true, perm: 'orders' },
   { type: 'item', label: 'Menu',         icon: UtensilsCrossed, to: '/admin/menu',          perm: 'menu' },
-  { type: 'item', label: 'QR',           icon: QrCode,          to: '/admin/locations',     perm: 'locations' },
+  { type: 'item', label: 'Locations & QR', icon: QrCode,        to: '/admin/locations',     perm: 'locations' },
   { type: 'item', label: 'Floor',        icon: MapPin,          to: '/admin/floor',         perm: 'locations' },
   { type: 'item', label: 'Kitchen',      icon: ChefHat,         to: '/kitchen' },
   { type: 'item', label: 'Ready Display',icon: MonitorPlay,     to: '/admin/ready-display' },
   { type: 'item', label: 'Promo Screens',icon: ImagePlus,       to: '/admin/promo-screens', featureKey: 'promoScreens', perm: 'promoScreens' },
-  { type: 'item', label: 'Finance',      icon: Receipt,         to: '/admin/finance',       perm: 'bills' },
+  { type: 'item', label: 'Bills & Payments', icon: Receipt,     to: '/admin/finance',       perm: 'bills' },
   { type: 'item', label: 'Staff',        icon: Users,           to: '/admin/users',         adminOnly: true },
   { type: 'item', label: 'Stock',        icon: Warehouse,       to: '/admin/stock',         perm: 'stock' },
   { type: 'item', label: 'Loyalty',      icon: Star,            to: '/admin/loyalty',       adminOnly: true },
@@ -118,6 +118,7 @@ export function AdminSidebar() {
               key={item.label}
               to={item.to}
               title={item.label}
+              aria-label={item.label}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors relative ${
                 active ? 'bg-orange-50 text-orange-600' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
               }`}
@@ -163,8 +164,8 @@ export function AdminSidebar() {
           <Menu size={20} />
         </button>
         <div className="flex-1">
-          <p className="text-sm font-bold text-gray-900 leading-tight">Restaurant POS</p>
-          <p className="text-[10px] text-gray-400">Admin Portal</p>
+          <p className="text-sm font-bold text-gray-900 leading-tight">Order Live</p>
+          <p className="text-[10px] text-gray-400">orderlive.online</p>
         </div>
         {activeCount > 0 && (
           <Link to="/admin/orders">
@@ -187,8 +188,8 @@ export function AdminSidebar() {
       >
         <div className="px-5 py-5 border-b border-gray-100 flex items-center justify-between flex-none">
           <div>
-            <p className="text-base font-bold text-gray-900 leading-tight">Restaurant POS</p>
-            <p className="text-xs text-gray-400 mt-0.5">Admin Portal</p>
+            <p className="text-base font-bold text-gray-900 leading-tight">Order Live</p>
+            <p className="text-xs text-gray-400 mt-0.5">orderlive.online</p>
           </div>
           <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors" aria-label="Close menu">
             <X size={18} />
@@ -206,14 +207,15 @@ export function AdminSidebar() {
         <div className={`border-b border-gray-100 flex-none flex items-center ${collapsed ? 'justify-center px-2 py-5' : 'px-4 py-5 justify-between'}`}>
           {!collapsed && (
             <div className="min-w-0">
-              <p className="text-base font-bold text-gray-900 leading-tight truncate">Restaurant POS</p>
-              <p className="text-xs text-gray-400 mt-0.5">Admin Portal</p>
+              <p className="text-base font-bold text-gray-900 leading-tight truncate">Order Live</p>
+              <p className="text-xs text-gray-400 mt-0.5">orderlive.online</p>
             </div>
           )}
           <button
             onClick={toggleCollapsed}
             className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors flex-none"
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <Menu size={18} />
           </button>

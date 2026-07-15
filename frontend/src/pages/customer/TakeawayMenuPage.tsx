@@ -215,6 +215,9 @@ export function TakeawayMenuPage() {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const isDelivery = location.pathname.startsWith('/delivery');
+  const orderType = isDelivery ? 'delivery' : 'takeaway';
+  const pageLabel = isDelivery ? 'Delivery' : t('customer.takeaway');
 
   const [categories, setCategories]   = useState<Category[]>([]);
   const [items, setItems]             = useState<MenuItem[]>([]);
@@ -223,7 +226,7 @@ export function TakeawayMenuPage() {
   const [loading, setLoading]         = useState(true);
   const [loadError, setLoadError]     = useState(false);
   const [restaurantInfo, setRestaurantInfo] = useState<RestaurantInfo | null>(null);
-  const [showWelcome, setShowWelcome] = useState(() => !sessionStorage.getItem(`welcome-seen-takeaway-${restaurantId}`));
+  const [showWelcome, setShowWelcome] = useState(() => !sessionStorage.getItem(`welcome-seen-${orderType}-${restaurantId}`));
   const [view, setView] = useState<'grid' | 'list'>(() =>
     (localStorage.getItem('qra_menu_view') as 'grid' | 'list' | null) ?? 'grid'
   );
@@ -234,6 +237,8 @@ export function TakeawayMenuPage() {
   const [cart, dispatch]              = useReducer(cartReducer, []);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryNotes, setDeliveryNotes] = useState('');
   const [cartOpen, setCartOpen]       = useState(false);
   const [placing, setPlacing]         = useState(false);
   const [detailModal, setDetailModal] = useState<MenuItem | null>(null);
@@ -324,14 +329,33 @@ export function TakeawayMenuPage() {
     if (cart.length === 0) return;
     setPlacing(true);
     try {
-      const order = await orderService.placeTakeawayOrder(
-        cart, customerName.trim() || undefined, restaurantId,
-        promoResult?.valid ? promoResult.code : undefined,
-        customerPhone.trim() || undefined,
-      );
+      if (isDelivery && !deliveryAddress.trim()) {
+        toast.error('Enter a delivery address');
+        return;
+      }
+      if (isDelivery && !customerPhone.trim()) {
+        toast.error('Enter a phone number for delivery');
+        return;
+      }
+      const order = isDelivery
+        ? await orderService.placeDeliveryOrder(
+          cart,
+          deliveryAddress.trim(),
+          customerPhone.trim(),
+          customerName.trim() || undefined,
+          restaurantId,
+          promoResult?.valid ? promoResult.code : undefined,
+          undefined,
+          deliveryNotes.trim() || undefined,
+        )
+        : await orderService.placeTakeawayOrder(
+          cart, customerName.trim() || undefined, restaurantId,
+          promoResult?.valid ? promoResult.code : undefined,
+          customerPhone.trim() || undefined,
+        );
       dispatch({ type: 'CLEAR' });
       setPromoResult(null); setPromoInput(''); setCartOpen(false);
-      saveActiveOrder(order.id, order.orderNumber, restaurantId ?? '', 'takeaway');
+      saveActiveOrder(order.id, order.orderNumber, restaurantId ?? '', orderType);
       navigate(`/order-success/${order.id}`);
     } catch {
       toast.error(t('customer.failedOrder'));
@@ -361,14 +385,14 @@ export function TakeawayMenuPage() {
       heroUrl={restaurantInfo.welcomeImageUrl}
       heading={restaurantInfo.welcomeHeading}
       tagline={restaurantInfo.welcomeTagline || t('customer.scanEnjoy')}
-      subtitle={t('customer.takeaway')}
+      subtitle={pageLabel}
       waitTimeMin={restaurantInfo.waitTimeMin}
       waitTimeLabel={restaurantInfo.waitTimeMin != null ? t('customer.waitTime', { n: restaurantInfo.waitTimeMin }) : undefined}
       social={restaurantInfo}
       followUsLabel={t('customer.followUs')}
       ctaLabel={t('customer.viewMenu')}
       poweredByLabel={t('customer.poweredBy')}
-      onEnter={() => { sessionStorage.setItem(`welcome-seen-takeaway-${restaurantId}`, '1'); setShowWelcome(false); }}
+      onEnter={() => { sessionStorage.setItem(`welcome-seen-${orderType}-${restaurantId}`, '1'); setShowWelcome(false); }}
     />
   );
 
@@ -381,7 +405,7 @@ export function TakeawayMenuPage() {
               {restaurantInfo?.logo
                 ? <img src={restaurantInfo.logo} alt="logo" className="w-8 h-8 object-contain rounded-md" />
                 : <ShoppingBag size={20} className="text-orange-500" />}
-              <h1 className="text-xl font-bold text-gray-900">{restaurantInfo?.name ?? t('customer.takeaway')}</h1>
+              <h1 className="text-xl font-bold text-gray-900">{restaurantInfo?.name ?? pageLabel}</h1>
             </div>
             <div className="flex items-center gap-2">
               <CurrencySwitcher />
@@ -400,7 +424,7 @@ export function TakeawayMenuPage() {
             </div>
           </div>
           <div className="flex items-center justify-between mt-1">
-            <p className="text-sm text-gray-500">{t('customer.takeaway')}</p>
+            <p className="text-sm text-gray-500">{pageLabel}</p>
             {restaurantInfo?.waitTimeMin && (
               <span className="flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">
                 <Clock size={11} /> {t('customer.waitTime', { n: restaurantInfo.waitTimeMin })}
@@ -544,16 +568,34 @@ export function TakeawayMenuPage() {
                     type="text"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder={t('customer.notePlaceholder')}
+                    placeholder="Customer name (optional)"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300 mb-1"
                   />
                   <input
                     type="tel"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    placeholder={t('customer.phonePlaceholder')}
+                    placeholder={isDelivery ? 'Phone number *' : t('customer.phonePlaceholder')}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
                   />
+                  {isDelivery && (
+                    <>
+                      <textarea
+                        value={deliveryAddress}
+                        onChange={(e) => setDeliveryAddress(e.target.value)}
+                        placeholder="Delivery address *"
+                        rows={2}
+                        className="mt-1 w-full resize-none border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
+                      />
+                      <input
+                        type="text"
+                        value={deliveryNotes}
+                        onChange={(e) => setDeliveryNotes(e.target.value)}
+                        placeholder="Delivery notes (optional)"
+                        className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-orange-300"
+                      />
+                    </>
+                  )}
                 </div>
                 <ul className="overflow-y-auto flex-1 divide-y divide-gray-50 px-4">
                   {cart.map((c) => {
@@ -692,7 +734,7 @@ export function TakeawayMenuPage() {
         />
       )}
 
-      <ActiveOrderBanner restaurantId={restaurantId ?? ''} orderType="takeaway" hidden={cartOpen} />
+      <ActiveOrderBanner restaurantId={restaurantId ?? ''} orderType={orderType} hidden={cartOpen} />
     </div>
   );
 }

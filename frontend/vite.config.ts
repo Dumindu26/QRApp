@@ -31,7 +31,7 @@ export default defineConfig({
       manifest: {
         name: 'Order Live',
         short_name: 'Order Live',
-        description: 'Restaurant Management & Ordering System',
+        description: 'Order Live restaurant ordering and admin tools',
         theme_color: '#8b5cf6',
         background_color: '#ffffff',
         display: 'standalone',

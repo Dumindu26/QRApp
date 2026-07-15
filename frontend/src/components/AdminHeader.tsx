@@ -46,12 +46,22 @@ export function AdminHeader({ title, subtitle, backTo, icon: Icon, children }: A
     <header className="bg-white shadow-sm sticky top-0 z-40">
       <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
         {navMode === 'launcher' && (
-          <Link to="/admin/launcher" className="text-gray-500 hover:text-orange-500 transition-colors shrink-0" title="Home">
+          <Link
+            to="/admin/launcher"
+            className="min-h-10 min-w-10 flex items-center justify-center rounded-lg text-gray-500 hover:text-orange-500 hover:bg-gray-50 transition-colors shrink-0"
+            title="Home"
+            aria-label="Home"
+          >
             <House size={20} />
           </Link>
         )}
         {backTo && (
-          <Link to={backTo} className="text-gray-600 hover:text-gray-900 shrink-0">
+          <Link
+            to={backTo}
+            className="min-h-10 min-w-10 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50 shrink-0"
+            title="Back"
+            aria-label="Back"
+          >
             <ArrowLeft size={20} />
           </Link>
         )}
@@ -71,6 +81,7 @@ export function AdminHeader({ title, subtitle, backTo, icon: Icon, children }: A
           onClick={toggleDark}
           className="p-2.5 rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors shrink-0"
           title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           {dark ? <Sun size={18} /> : <Moon size={18} />}
         </button>

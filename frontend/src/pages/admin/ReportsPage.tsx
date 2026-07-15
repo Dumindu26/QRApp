@@ -203,7 +203,7 @@ function pdfHeader(title: string, from: string, to: string) {
 }
 
 function pdfFooter() {
-  return `<div class="doc-footer"><span>QRA  -  Restaurant Management</span><span>Printed ${new Date().toLocaleDateString()}</span></div>`;
+  return `<div class="doc-footer"><span>Order Live - orderlive.online</span><span>Printed ${new Date().toLocaleDateString()}</span></div>`;
 }
 
 function pdfSummaryCards(s: Report['summary'], fmt: (n: number) => string) {

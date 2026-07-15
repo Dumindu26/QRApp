@@ -83,6 +83,7 @@ export function NewOrderPage() {
   const [deliveryFee, setDeliveryFee] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [placing, setPlacing] = useState(false);
+  const [mobileCartOpen, setMobileCartOpen] = useState(false);
   const [toppingModal, setToppingModal] = useState<{ item: MenuItem } | null>(null);
   const [editingNotesKey, setEditingNotesKey] = useState<string | null>(null);
 
@@ -237,6 +238,16 @@ export function NewOrderPage() {
     searchRef.current?.focus();
   }
   const itemCount = cart.reduce((s, c) => s + c.quantity, 0);
+  const modeRequirementLabel =
+    mode === 'dine-in' ? 'Table required'
+    : mode === 'room-service' ? 'Room required'
+    : mode === 'delivery' ? 'Address and phone required'
+    : 'Customer details optional';
+  const modeRequirementComplete =
+    mode === 'dine-in' ? Boolean(selectedTable)
+    : mode === 'room-service' ? Boolean(selectedRoom)
+    : mode === 'delivery' ? Boolean(deliveryAddress.trim() && customerPhone.trim())
+    : true;
 
   function handleAddItem(item: MenuItem) {
     const hasLarge = (item.largePrice ?? 0) > 0;
@@ -283,6 +294,7 @@ export function NewOrderPage() {
         toast.success('Delivery order placed!');
         navigate('/admin/orders');
       }
+      setMobileCartOpen(false);
     } catch {
       toast.error('Failed to place order');
     } finally {
@@ -296,40 +308,47 @@ export function NewOrderPage() {
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-40">
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
         <div className="px-3 sm:px-4 lg:px-6 py-3 flex items-center gap-2 overflow-x-auto">
-          <Link to="/admin" className="text-gray-600 shrink-0"><ArrowLeft size={20} /></Link>
+          <Link
+            to="/admin"
+            className="min-h-10 min-w-10 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50 shrink-0"
+            title="Back"
+            aria-label="Back"
+          >
+            <ArrowLeft size={20} />
+          </Link>
           <h1 className="text-xl font-bold text-gray-900 shrink-0 mr-2">New Order</h1>
 
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => switchMode('takeaway')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
-                mode === 'takeaway' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-semibold whitespace-nowrap transition-colors ${
+                mode === 'takeaway' ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
               <ShoppingBag size={13} /> Takeaway
             </button>
             <button
               onClick={() => switchMode('dine-in')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
-                mode === 'dine-in' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-semibold whitespace-nowrap transition-colors ${
+                mode === 'dine-in' ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
               <UtensilsCrossed size={13} /> Dine-in
             </button>
             <button
               onClick={() => switchMode('room-service')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
-                mode === 'room-service' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-semibold whitespace-nowrap transition-colors ${
+                mode === 'room-service' ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
               <BedDouble size={13} /> Room Service
             </button>
             <button
               onClick={() => switchMode('delivery')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
-                mode === 'delivery' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-semibold whitespace-nowrap transition-colors ${
+                mode === 'delivery' ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
               <Truck size={13} /> Delivery
@@ -344,6 +363,7 @@ export function NewOrderPage() {
                 <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 <input
                   ref={searchRef}
+                  id="new-order-search"
                   type="search"
                   value={search}
                   onChange={(e) => handleSearch(e.target.value)}
@@ -351,12 +371,14 @@ export function NewOrderPage() {
                     if (e.key === 'Escape' && !search) setSearchOpen(false);
                   }}
                   placeholder="Search menu items..."
-                  className="w-full pl-9 pr-9 py-2 text-sm bg-gray-100 rounded-full outline-none focus:bg-white focus:ring-2 focus:ring-orange-300 transition-all placeholder:text-gray-400"
+                  aria-label="Search menu items"
+                  className="w-full pl-9 pr-9 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg outline-none focus:bg-white focus:ring-1 focus:ring-orange-300 transition-all placeholder:text-gray-400"
                 />
                 <button
                   onClick={() => search ? clearSearch() : setSearchOpen(false)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-gray-400 hover:bg-gray-500 flex items-center justify-center transition-colors"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded bg-gray-400 hover:bg-gray-500 flex items-center justify-center transition-colors"
                   title={search ? 'Clear search' : 'Close search'}
+                  aria-label={search ? 'Clear menu item search' : 'Close menu item search'}
                 >
                   <X size={11} className="text-white" />
                 </button>
@@ -364,8 +386,9 @@ export function NewOrderPage() {
             ) : (
               <button
                 onClick={() => setSearchOpen(true)}
-                className="w-9 h-9 rounded-full bg-gray-100 text-gray-500 hover:text-orange-500 hover:bg-orange-50 flex items-center justify-center transition-colors"
+                className="w-9 h-9 rounded-lg border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center transition-colors"
                 title="Search menu items"
+                aria-label="Search menu items"
               >
                 <Search size={16} />
               </button>
@@ -373,18 +396,20 @@ export function NewOrderPage() {
           </div>
 
           {/* Grid / List toggle */}
-          <div className="flex items-center bg-gray-100 rounded-full p-0.5 shrink-0">
+          <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg p-0.5 shrink-0">
             <button
               onClick={() => { setView('grid'); localStorage.setItem('qra_neworder_view', 'grid'); }}
-              className={`p-1.5 rounded-full transition-colors ${view === 'grid' ? 'bg-white shadow text-orange-500' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`p-1.5 rounded-md transition-colors ${view === 'grid' ? 'bg-white text-orange-600' : 'text-gray-400 hover:text-gray-600'}`}
               title="Grid view"
+              aria-label="Show menu as grid"
             >
               <LayoutGrid size={15} />
             </button>
             <button
               onClick={() => { setView('list'); localStorage.setItem('qra_neworder_view', 'list'); }}
-              className={`p-1.5 rounded-full transition-colors ${view === 'list' ? 'bg-white shadow text-orange-500' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`p-1.5 rounded-md transition-colors ${view === 'list' ? 'bg-white text-orange-600' : 'text-gray-400 hover:text-gray-600'}`}
               title="List view"
+              aria-label="Show menu as list"
             >
               <List size={15} />
             </button>
@@ -393,13 +418,13 @@ export function NewOrderPage() {
       </header>
 
       <div
-        className="px-3 sm:px-4 lg:px-6 py-4 flex flex-col lg:grid gap-4 lg:gap-x-3 items-start"
+        className="px-3 sm:px-4 lg:px-6 py-4 pb-28 lg:pb-4 flex flex-col lg:grid gap-4 lg:gap-x-3 items-start"
         style={{ gridTemplateColumns: `200px minmax(0, 1fr) 10px ${orderDetailsWidth}px` }}
       >
         {/* Categories */}
         {!loading && (
           <aside className="w-full lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
-            <div className="bg-white lg:rounded-2xl lg:border lg:border-gray-100 lg:shadow-sm lg:p-3">
+            <div className="bg-white lg:rounded-lg lg:border lg:border-gray-100 lg:p-3">
               <div className="hidden lg:flex items-center justify-between px-1 pb-3">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Categories</p>
                 <span className="text-xs font-semibold text-gray-400">{items.length}</span>
@@ -407,12 +432,12 @@ export function NewOrderPage() {
               <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0">
                 <button
                   onClick={() => setActiveCategory('all')}
-                  className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 py-2 rounded-full lg:rounded-xl text-sm font-semibold transition-colors ${
-                    activeCategory === 'all' ? 'bg-green-700 text-white shadow-sm' : 'bg-gray-100 lg:bg-gray-50 text-gray-600 hover:bg-gray-200'
+                  className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg border text-sm font-semibold transition-colors ${
+                    activeCategory === 'all' ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-200 bg-white text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   }`}
                 >
                   <span>All</span>
-                  <span className={`text-xs ${activeCategory === 'all' ? 'text-green-100' : 'text-gray-400'}`}>{items.length}</span>
+                  <span className={`text-xs ${activeCategory === 'all' ? 'text-green-600' : 'text-gray-400'}`}>{items.length}</span>
                 </button>
                 {categories.map((c) => {
                   const count = categoryCounts.get(c.id) ?? 0;
@@ -420,12 +445,12 @@ export function NewOrderPage() {
                     <button
                       key={c.id}
                       onClick={() => setActiveCategory(c.id)}
-                      className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 py-2 rounded-full lg:rounded-xl text-sm font-semibold transition-colors ${
-                        activeCategory === c.id ? 'bg-green-700 text-white shadow-sm' : 'bg-gray-100 lg:bg-gray-50 text-gray-600 hover:bg-gray-200'
+                      className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg border text-sm font-semibold transition-colors ${
+                        activeCategory === c.id ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-200 bg-white text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                       }`}
                     >
                       <span className="truncate">{c.name}</span>
-                      <span className={`text-xs ${activeCategory === c.id ? 'text-green-100' : 'text-gray-400'}`}>{count}</span>
+                      <span className={`text-xs ${activeCategory === c.id ? 'text-green-600' : 'text-gray-400'}`}>{count}</span>
                     </button>
                   );
                 })}
@@ -597,13 +622,33 @@ export function NewOrderPage() {
           }`} />
         </div>
 
-        {/* â”€â”€ Sidebar â”€â”€ */}
-        <div className="w-full lg:w-full md:shrink-0 md:sticky md:top-24 space-y-3">
+        {/* â”€â”€ Sidebar / mobile cart drawer â”€â”€ */}
+        <div
+          className={`w-full lg:w-full md:shrink-0 space-y-3 ${
+            mobileCartOpen
+              ? 'fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-y-auto rounded-t-2xl bg-gray-50 p-3 shadow-2xl'
+              : 'hidden'
+          } lg:sticky lg:top-20 lg:block lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none`}
+        >
+          <div className="lg:hidden flex items-center justify-between px-1 pb-1">
+            <div>
+              <p className="text-sm font-bold text-gray-900">Order Summary</p>
+              <p className="text-xs text-gray-500">{modeRequirementLabel}</p>
+            </div>
+            <button onClick={() => setMobileCartOpen(false)} className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700">
+              <X size={18} />
+            </button>
+          </div>
 
           {/* Table selector  -  dine-in only */}
           {mode === 'dine-in' && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Select Table</p>
+            <div className={`bg-white rounded-xl border p-4 ${selectedTable ? 'border-orange-100' : 'border-orange-300 ring-1 ring-orange-100'}`}>
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Select Table</p>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${selectedTable ? 'bg-green-50 text-green-700' : 'bg-orange-50 text-orange-700'}`}>
+                  Required
+                </span>
+              </div>
               {tables.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-4">No tables found</p>
               ) : (
@@ -633,8 +678,13 @@ export function NewOrderPage() {
 
           {/* Room selector  -  room-service only */}
           {mode === 'room-service' && (
-            <div className="bg-white rounded-2xl shadow-sm border border-blue-50 p-4">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Select Room</p>
+            <div className={`bg-white rounded-xl border p-4 ${selectedRoom ? 'border-blue-100' : 'border-blue-300 ring-1 ring-blue-100'}`}>
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Select Room</p>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${selectedRoom ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700'}`}>
+                  Required
+                </span>
+              </div>
               {rooms.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-4">No rooms found</p>
               ) : (
@@ -665,8 +715,13 @@ export function NewOrderPage() {
 
           {/* Delivery details  -  delivery only */}
           {mode === 'delivery' && (
-            <div className="bg-white rounded-2xl shadow-sm border border-teal-50 p-4 space-y-3">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Delivery Details</p>
+            <div className={`bg-white rounded-xl border p-4 space-y-3 ${deliveryAddress.trim() && customerPhone.trim() ? 'border-teal-100' : 'border-teal-300 ring-1 ring-teal-100'}`}>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Delivery Details</p>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${deliveryAddress.trim() && customerPhone.trim() ? 'bg-green-50 text-green-700' : 'bg-teal-50 text-teal-700'}`}>
+                  Required
+                </span>
+              </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
                   Address <span className="text-red-500">*</span>
@@ -676,7 +731,7 @@ export function NewOrderPage() {
                   onChange={(e) => setDeliveryAddress(e.target.value)}
                   placeholder="House no., street, city"
                   rows={2}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-300 resize-none"
+                  className={`w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-300 resize-none ${deliveryAddress.trim() ? 'border-gray-200' : 'border-teal-300'}`}
                 />
               </div>
               <div>
@@ -708,7 +763,7 @@ export function NewOrderPage() {
           )}
 
           {/* Customer / guest name & phone */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+          <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
               {mode !== 'dine-in' && (
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
@@ -734,7 +789,9 @@ export function NewOrderPage() {
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   placeholder={mode === 'delivery' ? 'e.g. 0771234567' : 'e.g. 0771234567 (optional)'}
-                  className={`w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none ${
+                  className={`w-full border rounded-lg px-3 py-2 text-sm outline-none ${
+                    mode === 'delivery' && !customerPhone.trim() ? 'border-teal-300' : 'border-gray-200'
+                  } ${
                     mode === 'room-service' ? 'focus:ring-1 focus:ring-blue-300' : mode === 'dine-in' ? 'focus:ring-1 focus:ring-orange-300' : mode === 'delivery' ? 'focus:ring-1 focus:ring-teal-300' : 'focus:ring-1 focus:ring-purple-300'
                   }`}
                 />
@@ -742,9 +799,14 @@ export function NewOrderPage() {
             </div>
 
           {/* Cart */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-              <span className="font-semibold text-gray-900 flex-1">Order Summary</span>
+              <div className="flex-1">
+                <span className="font-semibold text-gray-900">Order Summary</span>
+                <p className={`text-xs ${modeRequirementComplete ? 'text-green-600' : 'text-orange-600'}`}>
+                  {modeRequirementComplete ? 'Ready for checkout' : modeRequirementLabel}
+                </p>
+              </div>
               {itemCount > 0 && (
                 <span className="bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
                   {itemCount}
@@ -755,7 +817,7 @@ export function NewOrderPage() {
             {cart.length === 0 ? (
               <p className="text-center text-gray-400 text-sm py-8">No items yet</p>
             ) : (
-              <ul className="divide-y divide-gray-50 max-h-72 overflow-y-auto">
+              <ul className="divide-y divide-gray-50 max-h-72 lg:max-h-[34vh] overflow-y-auto">
                 {cart.map((c) => {
                   const key = cartKey(c.menuItemId, c.size, c.toppings);
                   const toppingsTotal = (c.toppings ?? []).reduce((s, t) => s + t.price, 0);
@@ -779,14 +841,14 @@ export function NewOrderPage() {
                           {fmt((c.price + toppingsTotal) * c.quantity)}
                         </span>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <button onClick={() => dispatch({ type: 'DEC', key })} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 active:scale-95 transition-all">
+                          <button onClick={() => dispatch({ type: 'DEC', key })} className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 active:scale-95 transition-all" aria-label={`Decrease quantity for ${c.name}`}>
                             <Minus size={13} />
                           </button>
                           <span className="text-xs font-bold w-5 text-center">{c.quantity}</span>
-                          <button onClick={() => dispatch({ type: 'INC', key })} className="w-9 h-9 rounded-full bg-orange-500 text-white flex items-center justify-center hover:bg-orange-600 active:scale-95 transition-all">
+                          <button onClick={() => dispatch({ type: 'INC', key })} className="w-8 h-8 rounded-lg bg-orange-500 text-white flex items-center justify-center hover:bg-orange-600 active:scale-95 transition-all" aria-label={`Increase quantity for ${c.name}`}>
                             <Plus size={13} />
                           </button>
-                          <button onClick={() => dispatch({ type: 'REMOVE', key })} className="text-gray-300 hover:text-red-400 ml-1">
+                          <button onClick={() => dispatch({ type: 'REMOVE', key })} className="text-gray-300 hover:text-red-400 ml-1" aria-label={`Remove ${c.name} from cart`}>
                             <Trash2 size={13} />
                           </button>
                         </div>
@@ -837,14 +899,18 @@ export function NewOrderPage() {
                         {appliedPromo.type === 'percentage' ? `${appliedPromo.value}%` : fmt(appliedPromo.value!)} off  .  saving {fmt(discount)}
                       </p>
                     </div>
-                    <button onClick={removePromo} className="text-green-400 hover:text-red-400 transition-colors">
+                    <button onClick={removePromo} className="text-green-400 hover:text-red-400 transition-colors" aria-label="Remove promo code">
                       <X size={14} />
                     </button>
                   </div>
                 ) : (
                   <div className="space-y-1">
+                    <label htmlFor="promo-code" className="block text-xs font-semibold text-gray-500">
+                      Promo code
+                    </label>
                     <div className="flex gap-2">
                       <input
+                        id="promo-code"
                         type="text"
                         value={promoInput}
                         onChange={(e) => { setPromoInput(e.target.value.toUpperCase()); setPromoError(''); }}
@@ -915,6 +981,38 @@ export function NewOrderPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {mobileCartOpen && (
+        <button
+          type="button"
+          aria-label="Close cart drawer"
+          onClick={() => setMobileCartOpen(false)}
+          className="fixed inset-0 z-40 bg-black/30 lg:hidden"
+        />
+      )}
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white px-3 py-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] lg:hidden">
+        <button
+          type="button"
+          onClick={() => setMobileCartOpen(true)}
+          className="w-full flex items-center gap-3 rounded-xl bg-gray-900 px-3 py-3 text-white"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10">
+            <ShoppingBag size={18} />
+          </span>
+          <span className="min-w-0 flex-1 text-left">
+            <span className="block text-sm font-bold">
+              {itemCount} item{itemCount !== 1 ? 's' : ''} · {fmt(finalTotal)}
+            </span>
+            <span className={`block text-xs ${modeRequirementComplete ? 'text-green-200' : 'text-orange-200'}`}>
+              {modeRequirementComplete ? 'Ready to place order' : modeRequirementLabel}
+            </span>
+          </span>
+          <span className="rounded-lg bg-orange-500 px-3 py-2 text-xs font-bold">
+            Cart
+          </span>
+        </button>
       </div>
 
       {toppingModal && (

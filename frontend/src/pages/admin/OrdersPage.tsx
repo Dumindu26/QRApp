@@ -60,6 +60,19 @@ export function OrdersPage() {
   useOrderSoundAlert(orders);
   const { fmt } = useCurrency();
 
+  const LIVE_STATUS_FLOW: OrderStatus[] = ['pending', 'preparing', 'ready'];
+  const DELIVERY_STATUS_FLOW: OrderStatus[] = ['pending', 'preparing', 'ready', 'out-for-delivery', 'delivered'];
+  const STATUS_LABEL: Partial<Record<OrderStatus, string>> = { 'out-for-delivery': 'Out for Delivery' };
+  const LIVE_STATUS_RANK: Record<string, number> = {
+    pending: 0,
+    preparing: 1,
+    ready: 2,
+    'out-for-delivery': 3,
+    delivered: 4,
+    paid: 5,
+    cancelled: 6,
+  };
+
   const fetch = async () => {
     try {
       const data = await orderService.getOrders();
@@ -154,7 +167,7 @@ export function OrdersPage() {
     statusTab === 'all' ? o.status !== 'cancelled' : o.status === statusTab,
   );
 
-  const displayed = search.trim()
+  const searched = search.trim()
     ? filtered.filter((o) => {
         const q = search.toLowerCase();
         return (
@@ -167,6 +180,11 @@ export function OrdersPage() {
         );
       })
     : filtered;
+  const displayed = searched.slice().sort((a, b) => {
+    const statusDelta = (LIVE_STATUS_RANK[a.status] ?? 9) - (LIVE_STATUS_RANK[b.status] ?? 9);
+    if (statusDelta !== 0) return statusDelta;
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  });
 
   const orderGroups = [
     { key: 'takeaway',     label: 'Takeaway',     dot: 'bg-purple-400', orders: displayed.filter((o) => o.orderType === 'takeaway') },
@@ -194,6 +212,31 @@ export function OrdersPage() {
       : status === 'delivered'    ? 'border-l-emerald-500'
       : status === 'cancelled'    ? 'border-l-red-400'
       :                              'border-l-green-500';
+  }
+
+  function nextOrderStatus(order: Order): OrderStatus | undefined {
+    const flow = order.orderType === 'delivery' ? DELIVERY_STATUS_FLOW : LIVE_STATUS_FLOW;
+    const idx = flow.indexOf(order.status as OrderStatus);
+    return idx >= 0 ? flow[idx + 1] : undefined;
+  }
+
+  function nextOrderStatusLabel(order: Order) {
+    const next = nextOrderStatus(order);
+    return next ? (STATUS_LABEL[next] ?? next) : undefined;
+  }
+
+  function orderLocationLabel(order: Order) {
+    if (order.orderType === 'takeaway') return 'Takeaway';
+    if (order.orderType === 'delivery') return 'Delivery';
+    if (order.roomNumber) return `Room ${order.roomNumber}`;
+    if (order.tableNumber) return `Table ${order.tableNumber}`;
+    return 'Order';
+  }
+
+  function queueActionCls(next: OrderStatus) {
+    return next === 'ready' ? 'bg-green-600 hover:bg-green-700'
+      : next === 'out-for-delivery' || next === 'delivered' ? 'bg-teal-600 hover:bg-teal-700'
+      : 'bg-orange-500 hover:bg-orange-600';
   }
 
   function buildGroupData(grpOrders: Order[]) {
@@ -257,14 +300,14 @@ export function OrdersPage() {
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto md:overflow-hidden mt-14 md:mt-0 flex flex-col">
       <AdminHeader title={t('orders.title')} backTo="/admin">
-        <button onClick={fetch} className="p-2.5 rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors shrink-0" title="Refresh">
+        <button onClick={fetch} className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors shrink-0" title="Refresh" aria-label="Refresh orders">
           <RefreshCw size={18} />
         </button>
       </AdminHeader>
-      <div className="bg-white shadow-sm sticky top-0 z-30">
-        {/* Level 1 — order type (filled pill tabs) */}
-        <div className="flex items-center gap-2 p-3">
-          <div className="flex flex-1 gap-2">
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-30">
+        {/* Level 1 — order type */}
+        <div className="flex items-center gap-2 px-3 sm:px-4 lg:px-6 pt-2">
+          <div className="flex flex-1 gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {TYPE_TABS.map((tt) => {
               const count =
                 tt.value === 'all'
@@ -281,8 +324,8 @@ export function OrdersPage() {
                 <button
                   key={tt.value}
                   onClick={() => setTypeTab(tt.value)}
-                  className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-colors ${
-                    active ? 'bg-orange-500 text-white' : 'text-gray-500 hover:bg-gray-100'
+                  className={`shrink-0 flex-1 min-w-max px-3 py-2 border-b-2 text-sm font-semibold transition-colors ${
+                    active ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                   }`}
                 >
                   {tt.label} · <span className="tabular-nums">{count}</span>
@@ -292,55 +335,42 @@ export function OrdersPage() {
           </div>
           <Link
             to="/admin/new-order"
-            className="flex items-center gap-1.5 bg-orange-500 text-white px-4 py-3 rounded-xl text-sm font-semibold hover:bg-orange-600 transition-colors shrink-0"
+            role="button"
+            className="flex items-center gap-1.5 bg-orange-500 text-white px-3 py-2 rounded-lg text-sm font-semibold hover:bg-orange-600 transition-colors shrink-0"
           >
             <Plus size={16} /> New
           </Link>
         </div>
 
-        {/* Level 2 — order status (scrollable tiles with dot + label + count) */}
-        <div className="relative border-b border-gray-100">
-          <div className="flex gap-1.5 overflow-x-auto py-2 pl-3 sm:pl-4 lg:pl-6 pr-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {/* Level 2 — order status */}
+        <div className="relative">
+          <div className="flex gap-1 overflow-x-auto py-2 pl-3 sm:pl-4 lg:pl-6 pr-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {STATUS_CHIPS.map((sc) => {
               const count = sc.value === 'all'
                 ? byType.filter((o) => o.status !== 'cancelled').length
                 : byType.filter((o) => o.status === sc.value).length;
               const active = statusTab === sc.value;
-              const inactiveBorderCls =
-                sc.value === 'pending'   ? 'border-amber-200'
-                : sc.value === 'preparing' ? 'border-blue-200'
-                : sc.value === 'ready'     ? 'border-green-200'
-                : sc.value === 'out-for-delivery' ? 'border-teal-200'
-                : sc.value === 'delivered' ? 'border-emerald-200'
-                : sc.value === 'cancelled' ? 'border-red-200'
-                : 'border-gray-200';
               const activeCls =
                 sc.value === 'all'       ? 'bg-gray-900 border-gray-800 text-white'
-                : sc.value === 'pending'   ? 'bg-amber-50 border-amber-400 text-amber-700'
-                : sc.value === 'preparing' ? 'bg-blue-50 border-blue-500 text-blue-700'
-                : sc.value === 'ready'     ? 'bg-green-50 border-green-500 text-green-700'
-                : sc.value === 'out-for-delivery' ? 'bg-teal-50 border-teal-500 text-teal-700'
-                : sc.value === 'delivered' ? 'bg-emerald-50 border-emerald-600 text-emerald-700'
-                :                           'bg-red-50 border-red-400 text-red-600';
+                : sc.value === 'pending'   ? 'bg-amber-500 border-amber-500 text-white'
+                : sc.value === 'preparing' ? 'bg-blue-600 border-blue-600 text-white'
+                : sc.value === 'ready'     ? 'bg-green-600 border-green-600 text-white'
+                : sc.value === 'out-for-delivery' ? 'bg-teal-600 border-teal-600 text-white'
+                : sc.value === 'delivered' ? 'bg-emerald-600 border-emerald-600 text-white'
+                :                           'bg-red-600 border-red-600 text-white';
               const countCls = active
-                ? sc.value === 'all'       ? 'text-white/60'
-                : sc.value === 'pending'   ? 'text-amber-600'
-                : sc.value === 'preparing' ? 'text-blue-600'
-                : sc.value === 'ready'     ? 'text-green-600'
-                : sc.value === 'out-for-delivery' ? 'text-teal-600'
-                : sc.value === 'delivered' ? 'text-emerald-700'
-                :                           'text-red-500'
+                ? 'text-white/80'
                 : 'text-gray-800';
               return (
                 <button
                   key={sc.value}
                   onClick={() => setStatusTab(sc.value)}
-                  className={`flex flex-col items-center justify-center gap-1 min-w-[64px] h-[58px] px-3 rounded-xl border-[1.5px] shrink-0 transition-all active:scale-95 ${
-                    active ? activeCls : `bg-white ${inactiveBorderCls} text-gray-700 hover:border-gray-300`
+                  className={`flex items-center justify-center gap-2 min-w-max h-9 px-3 rounded-lg border shrink-0 transition-colors ${
+                    active ? activeCls : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
-                  <span className="text-[11px] font-semibold leading-none whitespace-nowrap">{sc.label}</span>
-                  <span className={`text-base font-extrabold leading-none tabular-nums ${countCls}`}>{count}</span>
+                  <span className="text-xs font-semibold leading-none whitespace-nowrap">{sc.label}</span>
+                  <span className={`text-xs font-bold leading-none tabular-nums ${countCls}`}>{count}</span>
                 </button>
               );
             })}
@@ -350,17 +380,21 @@ export function OrdersPage() {
 
         {/* Search */}
         <div className="px-3 sm:px-4 lg:px-6 py-2.5">
+          <label htmlFor="orders-search" className="mb-1 block text-xs font-semibold text-gray-500">
+            Search orders
+          </label>
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
+              id="orders-search"
               type="text"
               placeholder="Search by order no., table, customer…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-8 py-2 bg-gray-100 rounded-xl text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-orange-300 transition-colors"
+              className="w-full pl-8 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-orange-300 transition-colors"
             />
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" aria-label="Clear order search">
                 <X size={14} />
               </button>
             )}
@@ -641,69 +675,112 @@ export function OrdersPage() {
                           <span className="text-xs text-gray-300">({g.orders.length})</span>
                         </div>
                         <div className="space-y-2">
-                          {g.orders.map((order) => (
-                            <button
-                              key={order.id}
-                              onClick={() => setSelectedOrderId(order.id)}
-                              className={`w-full text-left px-3.5 py-3.5 rounded-xl border-l-4 transition-colors ${statusStripeCls(order.status)} ${
-                                selectedOrderId === order.id
-                                  ? 'bg-blue-50'
-                                  : 'bg-gray-50 hover:bg-white'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-sm font-semibold text-gray-900 truncate">
-                                  {order.orderNumber ?? 'Order'}
-                                </span>
-                                <StatusBadge status={order.status} />
+                          {g.orders.map((order) => {
+                            const next = nextOrderStatus(order);
+                            const nextLabel = nextOrderStatusLabel(order);
+                            return (
+                              <div
+                                key={order.id}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => setSelectedOrderId(order.id)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') setSelectedOrderId(order.id);
+                                }}
+                                className={`w-full text-left px-3.5 py-3 rounded-lg border-l-4 border cursor-pointer transition-colors ${statusStripeCls(order.status)} ${
+                                  selectedOrderId === order.id
+                                    ? 'bg-orange-50 border-y-orange-200 border-r-orange-200 ring-1 ring-orange-200'
+                                    : 'bg-white border-y-gray-100 border-r-gray-100 hover:bg-gray-50'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <span className="block text-sm font-semibold text-gray-900 truncate">
+                                      {order.orderNumber ?? 'Order'}
+                                    </span>
+                                    <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
+                                      <span>{orderLocationLabel(order)}</span>
+                                      {order.customerName && <span className="truncate">{order.customerName}</span>}
+                                    </div>
+                                  </div>
+                                  <StatusBadge status={order.status} />
+                                </div>
+                                <div className="mt-2 flex items-center justify-between gap-2">
+                                  <span className="text-xs text-gray-500">
+                                    {order.items.length} item{order.items.length !== 1 ? 's' : ''} · <span className="font-semibold text-gray-800">{fmt(order.totalAmount)}</span>
+                                  </span>
+                                  {next && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleStatusChange(order.id, next);
+                                      }}
+                                      className={`shrink-0 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-white transition-colors capitalize ${queueActionCls(next)}`}
+                                    >
+                                      {nextLabel}
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                              <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
-                                <span>
-                                  {order.orderType === 'takeaway' ? 'Takeaway' :
-                                   order.tableNumber ? `Table ${order.tableNumber}` :
-                                   order.roomNumber  ? `Room ${order.roomNumber}` : '—'}
-                                </span>
-                                {order.customerName && <span className="truncate">{order.customerName}</span>}
-                              </div>
-                            </button>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {displayed.map((order) => (
-                      <button
-                        key={order.id}
-                        onClick={() => setSelectedOrderId(order.id)}
-                        className={`w-full text-left px-3.5 py-3.5 rounded-xl border-l-4 transition-colors ${statusStripeCls(order.status)} ${
-                          selectedOrderId === order.id
-                            ? 'bg-blue-50'
-                            : 'bg-gray-50 hover:bg-white'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm font-semibold text-gray-900 truncate">
-                            {order.orderNumber ?? 'Order'}
-                          </span>
-                          <span className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${
-                            order.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
-                            order.status === 'preparing' ? 'bg-blue-100 text-blue-700' :
-                            order.status === 'ready'     ? 'bg-green-100 text-green-700' :
-                            'bg-red-100 text-red-600'
-                          }`}>{order.status}</span>
+                    {displayed.map((order) => {
+                      const next = nextOrderStatus(order);
+                      const nextLabel = nextOrderStatusLabel(order);
+                      return (
+                        <div
+                          key={order.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSelectedOrderId(order.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') setSelectedOrderId(order.id);
+                          }}
+                          className={`w-full text-left px-3.5 py-3 rounded-lg border-l-4 border cursor-pointer transition-colors ${statusStripeCls(order.status)} ${
+                            selectedOrderId === order.id
+                              ? 'bg-orange-50 border-y-orange-200 border-r-orange-200 ring-1 ring-orange-200'
+                              : 'bg-white border-y-gray-100 border-r-gray-100 hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <span className="block text-sm font-semibold text-gray-900 truncate">
+                                {order.orderNumber ?? 'Order'}
+                              </span>
+                              <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
+                                <span>{orderLocationLabel(order)}</span>
+                                {order.customerName && <span className="truncate">{order.customerName}</span>}
+                              </div>
+                            </div>
+                            <StatusBadge status={order.status} />
+                          </div>
+                          <div className="mt-2 flex items-center justify-between gap-2">
+                            <span className="text-xs text-gray-500">
+                              {order.items.length} item{order.items.length !== 1 ? 's' : ''} · <span className="font-semibold text-gray-800">{fmt(order.totalAmount)}</span>
+                            </span>
+                            {next && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusChange(order.id, next);
+                                }}
+                                className={`shrink-0 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-white transition-colors capitalize ${queueActionCls(next)}`}
+                              >
+                                {nextLabel}
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
-                          <span>
-                            {order.orderType === 'takeaway' ? 'Takeaway' :
-                             order.tableNumber ? `Table ${order.tableNumber}` :
-                             order.roomNumber  ? `Room ${order.roomNumber}` : '—'}
-                          </span>
-                          {order.customerName && <span className="truncate">{order.customerName}</span>}
-                        </div>
-                      </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

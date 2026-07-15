@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import {
   Plus, Trash2, QrCode, Printer,
-  BedDouble, Table2, ShoppingBag, Download, Copy, Check, Pencil, X,
+  BedDouble, Table2, ShoppingBag, Download, Copy, Check, Pencil, X, Truck, ExternalLink,
 } from 'lucide-react';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import type { Table, Room } from '../../types';
@@ -17,7 +17,10 @@ import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
 import { useConfirm } from '../../components/ConfirmModal';
 
-type Tab = 'tables' | 'rooms';
+type Tab = 'tables' | 'rooms' | 'takeaway' | 'delivery';
+type ServiceQrKind = 'takeaway' | 'delivery';
+type ServiceQrActivity = Partial<Record<ServiceQrKind, { printedAt?: string; downloadedAt?: string }>>;
+const SERVICE_QR_ACTIVITY_KEY = 'locations-service-qr-activity';
 
 // â”€â”€ Shared print helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -47,6 +50,9 @@ function roomCardHtml(num: number, name: string | null | undefined, url: string,
 function takeawayCardHtml(url: string, svg: string) {
   return `<div class="card"><div class="label">Takeaway Orders</div><div class="title" style="font-size:32px">Scan to Order</div><div class="subtitle">Takeaway &amp; Pickup</div><div class="qr">${svg}</div><div class="url">${url}</div></div>`;
 }
+function deliveryCardHtml(url: string, svg: string) {
+  return `<div class="card"><div class="label">Delivery Orders</div><div class="title" style="font-size:32px">Scan to Order</div><div class="subtitle">Delivery</div><div class="qr">${svg}</div><div class="url">${url}</div></div>`;
+}
 
 function openPrintWindow(html: string, title = 'QR Codes') {
   const win = window.open('', '_blank', 'width=520,height=700');
@@ -66,7 +72,7 @@ export function LocationsPage() {
 
   const [activeTab, setActiveTab] = useState<Tab>(() => {
     const fromUrl = searchParams.get('tab') as Tab | null;
-    if (fromUrl === 'tables' || fromUrl === 'rooms') return fromUrl;
+    if (fromUrl === 'tables' || fromUrl === 'rooms' || fromUrl === 'takeaway' || fromUrl === 'delivery') return fromUrl;
     return (localStorage.getItem('locations-tab') as Tab) ?? 'tables';
   });
 
@@ -76,6 +82,7 @@ export function LocationsPage() {
   const [tableSeats, setTableSeats] = useState('4');
   const [tableQrPreview, setTableQrPreview] = useState<Table | null>(null);
   const [takeawayQrOpen, setTakeawayQrOpen] = useState(false);
+  const [deliveryQrOpen, setDeliveryQrOpen] = useState(false);
   const [editingTable, setEditingTable] = useState<{ id: string; number: string; seats: string } | null>(null);
 
   // â”€â”€ Rooms state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -88,12 +95,21 @@ export function LocationsPage() {
   const tableQrRefs         = useRef<Map<string, HTMLDivElement>>(new Map());
   const roomQrRefs          = useRef<Map<string, HTMLDivElement>>(new Map());
   const takeawayQrRef       = useRef<HTMLDivElement>(null);
+  const deliveryQrRef       = useRef<HTMLDivElement>(null);
   // Canvas refs for PNG download
   const tableCanvasRefs     = useRef<Map<string, HTMLDivElement>>(new Map());
   const roomCanvasRefs      = useRef<Map<string, HTMLDivElement>>(new Map());
   const takeawayCanvasRef   = useRef<HTMLDivElement>(null);
+  const deliveryCanvasRef   = useRef<HTMLDivElement>(null);
   // Copy-to-clipboard feedback
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const [serviceQrActivity, setServiceQrActivity] = useState<ServiceQrActivity>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(SERVICE_QR_ACTIVITY_KEY) ?? '{}') as ServiceQrActivity;
+    } catch {
+      return {};
+    }
+  });
 
   const origin = window.location.origin;
 
@@ -113,6 +129,28 @@ export function LocationsPage() {
   }, [user?.restaurantId]);
 
   const takeawayUrl = resolvedRestaurantId ? `${origin}/takeaway/${resolvedRestaurantId}` : '';
+  const deliveryUrl = resolvedRestaurantId ? `${origin}/delivery/${resolvedRestaurantId}` : '';
+
+  function recordServiceQrAction(kind: ServiceQrKind, action: 'printedAt' | 'downloadedAt') {
+    setServiceQrActivity((prev) => {
+      const next = {
+        ...prev,
+        [kind]: { ...(prev[kind] ?? {}), [action]: new Date().toISOString() },
+      };
+      localStorage.setItem(SERVICE_QR_ACTIVITY_KEY, JSON.stringify(next));
+      return next;
+    });
+  }
+
+  function formatActivityTime(value?: string) {
+    if (!value) return 'Never';
+    return new Date(value).toLocaleString([], {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
 
   function switchTab(tab: Tab) {
     setActiveTab(tab);
@@ -126,19 +164,22 @@ export function LocationsPage() {
   const getTableSvg    = (id: string) => tableQrRefs.current.get(id)?.querySelector('svg')?.outerHTML ?? '';
   const getRoomSvg     = (id: string) => roomQrRefs.current.get(id)?.querySelector('svg')?.outerHTML ?? '';
   const getTakeawaySvg = ()           => takeawayQrRef.current?.querySelector('svg')?.outerHTML ?? '';
+  const getDeliverySvg = ()           => deliveryQrRef.current?.querySelector('svg')?.outerHTML ?? '';
 
   // â”€â”€ PNG download helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function downloadPng(containerRef: HTMLDivElement | null | undefined, filename: string) {
     const canvas = containerRef?.querySelector('canvas') as HTMLCanvasElement | null;
-    if (!canvas) { toast.error('QR not ready, try again'); return; }
+    if (!canvas) { toast.error('QR not ready, try again'); return false; }
     const link = document.createElement('a');
     link.href = canvas.toDataURL('image/png');
     link.download = filename;
     link.click();
+    return true;
   }
   function downloadTableQr(table: Table)  { downloadPng(tableCanvasRefs.current.get(table.id), `table-${table.number}-qr.png`); }
   function downloadRoomQr(room: Room)     { downloadPng(roomCanvasRefs.current.get(room.id),   `room-${room.number}-qr.png`); }
-  function downloadTakeawayQr()           { downloadPng(takeawayCanvasRef.current,              'takeaway-qr.png'); }
+  function downloadTakeawayQr()           { if (downloadPng(takeawayCanvasRef.current,          'takeaway-qr.png')) recordServiceQrAction('takeaway', 'downloadedAt'); }
+  function downloadDeliveryQr()           { if (downloadPng(deliveryCanvasRef.current,          'delivery-qr.png')) recordServiceQrAction('delivery', 'downloadedAt'); }
 
   // â”€â”€ Copy URL helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function copyUrl(url: string) {
@@ -202,6 +243,14 @@ export function LocationsPage() {
     const svg = getTakeawaySvg();
     if (!svg || !takeawayUrl) return toast.error('QR not ready, try again');
     openPrintWindow(takeawayCardHtml(takeawayUrl, svg), 'Takeaway QR');
+    recordServiceQrAction('takeaway', 'printedAt');
+  }
+
+  function printDelivery() {
+    const svg = getDeliverySvg();
+    if (!svg || !deliveryUrl) return toast.error('QR not ready, try again');
+    openPrintWindow(deliveryCardHtml(deliveryUrl, svg), 'Delivery QR');
+    recordServiceQrAction('delivery', 'printedAt');
   }
 
   // â”€â”€ Room actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -245,6 +294,115 @@ export function LocationsPage() {
   const inp = (focus: string) =>
     `border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-1 ${focus} bg-white`;
 
+  const canPrintActive =
+    activeTab === 'tables' ? tables.length > 0
+      : activeTab === 'rooms' ? rooms.length > 0
+      : activeTab === 'takeaway' ? Boolean(takeawayUrl)
+      : Boolean(deliveryUrl);
+
+  function printActiveTab() {
+    if (activeTab === 'tables') printAllTables();
+    else if (activeTab === 'rooms') printAllRooms();
+    else if (activeTab === 'takeaway') printTakeaway();
+    else printDelivery();
+  }
+
+  function renderServiceQrCard(kind: 'takeaway' | 'delivery') {
+    const isTakeaway = kind === 'takeaway';
+    const url = isTakeaway ? takeawayUrl : deliveryUrl;
+    const activity = serviceQrActivity[kind] ?? {};
+    const Icon = isTakeaway ? ShoppingBag : Truck;
+    const title = isTakeaway ? 'Takeaway QR Code' : 'Delivery QR Code';
+    const description = isTakeaway ? 'One QR - many pickup orders' : 'One QR - many delivery orders';
+    const accent = isTakeaway
+      ? {
+        border: 'border-purple-100',
+        icon: 'text-purple-500',
+        link: 'text-purple-500 hover:text-purple-700',
+        preview: 'bg-purple-50 text-purple-600 hover:bg-purple-100',
+      }
+      : {
+        border: 'border-teal-100',
+        icon: 'text-teal-500',
+        link: 'text-teal-500 hover:text-teal-700',
+        preview: 'bg-teal-50 text-teal-600 hover:bg-teal-100',
+      };
+
+    if (!url) {
+      return (
+        <div className="bg-white rounded-2xl border border-amber-100 p-6 text-center">
+          <Icon size={40} className="mx-auto mb-3 text-amber-300" />
+          <p className="text-sm font-semibold text-amber-700">Missing restaurant link</p>
+          <p className="text-xs text-gray-400 mt-1">Connect this admin account to a restaurant before sharing this QR.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className={`bg-white rounded-2xl p-4 shadow-sm border ${accent.border}`}>
+        <div className="flex flex-col sm:flex-row sm:items-start gap-3 mb-4">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Icon size={16} className={accent.icon} />
+            <div className="min-w-0">
+              <h2 className="font-semibold text-gray-700 text-sm">{title}</h2>
+              <p className="text-xs text-gray-400">{description}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="inline-flex items-center gap-1 rounded-lg border border-green-100 bg-green-50 px-2.5 py-1 font-semibold text-green-700">
+              <Check size={12} /> Ready
+            </span>
+          </div>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-[auto_minmax(0,1fr)]">
+          <button
+            type="button"
+            className="cursor-pointer flex-shrink-0 justify-self-start"
+            onClick={() => isTakeaway ? setTakeawayQrOpen(true) : setDeliveryQrOpen(true)}
+            aria-label={`Preview ${title}`}
+          >
+            <QRCodeSVG value={url} size={96} />
+          </button>
+          <div className="flex-1 min-w-0">
+            <a href={url} target="_blank" rel="noopener noreferrer" className={`block rounded-md py-2 text-xs ${accent.link} hover:underline break-all mb-3`}>{url}</a>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+              <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Status</p>
+                <p className="text-xs font-semibold text-green-700">Ready</p>
+              </div>
+              <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Last printed</p>
+                <p className="text-xs font-semibold text-gray-700">{formatActivityTime(activity.printedAt)}</p>
+              </div>
+              <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Last downloaded</p>
+                <p className="text-xs font-semibold text-gray-700">{formatActivityTime(activity.downloadedAt)}</p>
+              </div>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <a href={url} target="_blank" rel="noopener noreferrer" role="button" className="flex items-center gap-1.5 text-xs bg-gray-900 text-white px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors font-semibold">
+                <ExternalLink size={12} /> Open customer page
+              </a>
+              <button onClick={() => isTakeaway ? setTakeawayQrOpen(true) : setDeliveryQrOpen(true)} className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-full transition-colors font-medium ${accent.preview}`}>
+                <QrCode size={12} /> Preview
+              </button>
+              <button onClick={isTakeaway ? printTakeaway : printDelivery} className="flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors font-medium">
+                <Printer size={12} /> Print
+              </button>
+              <button onClick={isTakeaway ? downloadTakeawayQr : downloadDeliveryQr} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors font-medium">
+                <Download size={12} /> PNG
+              </button>
+              <button onClick={() => copyUrl(url)} className="flex items-center gap-1 text-xs bg-gray-50 text-gray-600 px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors font-medium">
+                {copiedUrl === url ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                {copiedUrl === url ? 'Copied' : 'Copy URL'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
@@ -270,6 +428,12 @@ export function LocationsPage() {
             <div ref={takeawayCanvasRef}><QRCodeCanvas value={takeawayUrl} size={512} /></div>
           </>
         )}
+        {deliveryUrl && (
+          <>
+            <div ref={deliveryQrRef}><QRCodeSVG value={deliveryUrl} size={220} /></div>
+            <div ref={deliveryCanvasRef}><QRCodeCanvas value={deliveryUrl} size={512} /></div>
+          </>
+        )}
         {rooms.map((r) => (
           <div key={r.id}>
             <div ref={(el) => { if (el) roomQrRefs.current.set(r.id, el); else roomQrRefs.current.delete(r.id); }}>
@@ -286,43 +450,65 @@ export function LocationsPage() {
       <AdminHeader title="Locations & QR Codes" backTo="/admin" />
 
       {/* Tab switcher — with Print All on the same row (right-aligned) */}
-      <div className="bg-white shadow-sm px-3 sm:px-4 lg:px-6 pt-3 pb-3 flex items-center gap-2">
+      <div className="bg-white border-b border-gray-100 px-3 sm:px-4 lg:px-6 pt-2 flex items-center gap-1 overflow-x-auto">
         <button
           onClick={() => switchTab('tables')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+          className={`flex items-center gap-2 px-3 py-2 border-b-2 text-sm font-semibold transition-colors whitespace-nowrap ${
             activeTab === 'tables'
-              ? 'bg-orange-500 text-white shadow-sm'
-              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              ? 'border-orange-500 text-orange-600'
+              : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'
           }`}
         >
           <Table2 size={15} />
           Tables
-          <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
-            activeTab === 'tables' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'
-          }`}>{tables.length}</span>
+          <span className="text-xs font-bold text-gray-400 tabular-nums">{tables.length}</span>
         </button>
 
         <button
           onClick={() => switchTab('rooms')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+          className={`flex items-center gap-2 px-3 py-2 border-b-2 text-sm font-semibold transition-colors whitespace-nowrap ${
             activeTab === 'rooms'
-              ? 'bg-blue-500 text-white shadow-sm'
-              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              ? 'border-orange-500 text-orange-600'
+              : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'
           }`}
         >
           <BedDouble size={15} />
           Rooms
-          <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
-            activeTab === 'rooms' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'
-          }`}>{rooms.length}</span>
+          <span className="text-xs font-bold text-gray-400 tabular-nums">{rooms.length}</span>
         </button>
 
         <button
-          onClick={activeTab === 'tables' ? printAllTables : printAllRooms}
-          disabled={activeTab === 'tables' ? tables.length === 0 : rooms.length === 0}
-          className="ml-auto flex items-center gap-1.5 text-sm bg-gray-800 text-white px-3 py-1.5 rounded-full font-medium hover:bg-gray-900 transition-colors disabled:opacity-40"
+          onClick={() => switchTab('takeaway')}
+          className={`flex items-center gap-2 px-3 py-2 border-b-2 text-sm font-semibold transition-colors whitespace-nowrap ${
+            activeTab === 'takeaway'
+              ? 'border-orange-500 text-orange-600'
+              : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+          }`}
         >
-          <Printer size={14} /> Print All
+          <ShoppingBag size={15} />
+          Takeaway
+          <span className="text-xs font-bold text-gray-400 tabular-nums">{takeawayUrl ? 1 : 0}</span>
+        </button>
+
+        <button
+          onClick={() => switchTab('delivery')}
+          className={`flex items-center gap-2 px-3 py-2 border-b-2 text-sm font-semibold transition-colors whitespace-nowrap ${
+            activeTab === 'delivery'
+              ? 'border-orange-500 text-orange-600'
+              : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+          }`}
+        >
+          <Truck size={15} />
+          Delivery
+          <span className="text-xs font-bold text-gray-400 tabular-nums">{deliveryUrl ? 1 : 0}</span>
+        </button>
+
+        <button
+          onClick={printActiveTab}
+          disabled={!canPrintActive}
+          className="ml-auto flex items-center gap-1.5 text-sm bg-gray-800 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-gray-900 transition-colors disabled:opacity-40 whitespace-nowrap"
+        >
+          <Printer size={14} /> {activeTab === 'tables' || activeTab === 'rooms' ? 'Print All' : 'Print QR'}
         </button>
       </div>
 
@@ -331,50 +517,22 @@ export function LocationsPage() {
         {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TABLES TAB â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         {activeTab === 'tables' && (
           <>
-            {/* Takeaway QR card */}
-            {takeawayUrl && (
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-purple-100">
-                <div className="flex items-center gap-2 mb-3">
-                  <ShoppingBag size={16} className="text-purple-500" />
-                  <h2 className="font-semibold text-gray-700 text-sm">Takeaway QR Code</h2>
-                  <span className="ml-auto text-xs text-gray-400">One QR  -  many customers</span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="cursor-pointer flex-shrink-0" onClick={() => setTakeawayQrOpen(true)}>
-                    <QRCodeSVG value={takeawayUrl} size={96} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <a href={takeawayUrl} target="_blank" rel="noopener noreferrer" className="block text-xs text-purple-500 hover:text-purple-700 hover:underline break-all mb-3">{takeawayUrl}</a>
-                    <div className="flex gap-2 flex-wrap">
-                      <button onClick={() => setTakeawayQrOpen(true)} className="flex items-center gap-1 text-xs bg-purple-50 text-purple-600 px-3 py-1.5 rounded-full hover:bg-purple-100 transition-colors font-medium">
-                        <QrCode size={12} /> Preview
-                      </button>
-                      <button onClick={printTakeaway} className="flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors font-medium">
-                        <Printer size={12} /> Print
-                      </button>
-                      <button onClick={downloadTakeawayQr} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors font-medium">
-                        <Download size={12} /> PNG
-                      </button>
-                      <button onClick={() => copyUrl(takeawayUrl)} className="flex items-center gap-1 text-xs bg-gray-50 text-gray-600 px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors font-medium">
-                        {copiedUrl === takeawayUrl ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
-                        {copiedUrl === takeawayUrl ? 'Copied' : 'Copy URL'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Add table */}
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
               <h2 className="font-semibold text-gray-700 mb-3 text-sm">Add Table</h2>
               <div className="flex gap-2 flex-wrap">
-                <input type="number" value={tableNum} onChange={(e) => setTableNum(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && addTable()} placeholder="Table #"
-                  className={`w-24 ${inp('focus:ring-orange-300')}`} />
-                <input type="number" value={tableSeats} onChange={(e) => setTableSeats(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && addTable()} placeholder="Seats"
-                  className={`w-24 ${inp('focus:ring-orange-300')}`} />
+                <label className="flex w-24 flex-col gap-1 text-xs font-semibold text-gray-500">
+                  Table #
+                  <input type="number" value={tableNum} onChange={(e) => setTableNum(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && addTable()} placeholder="1"
+                    className={inp('focus:ring-orange-300')} />
+                </label>
+                <label className="flex w-24 flex-col gap-1 text-xs font-semibold text-gray-500">
+                  Seats
+                  <input type="number" value={tableSeats} onChange={(e) => setTableSeats(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && addTable()} placeholder="4"
+                    className={inp('focus:ring-orange-300')} />
+                </label>
                 <button onClick={addTable} className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors">
                   <Plus size={14} /> Add
                 </button>
@@ -416,7 +574,7 @@ export function LocationsPage() {
                           <button onClick={saveTable} className="flex items-center gap-1 text-xs bg-orange-500 text-white px-3 py-1 rounded-full hover:bg-orange-600 transition-colors font-medium">
                             <Check size={11} /> Save
                           </button>
-                          <button onClick={() => setEditingTable(null)} className="flex items-center text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full hover:bg-gray-200 transition-colors">
+                          <button onClick={() => setEditingTable(null)} className="flex items-center text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full hover:bg-gray-200 transition-colors" aria-label={`Cancel editing table ${table.number}`}>
                             <X size={11} />
                           </button>
                         </div>
@@ -435,10 +593,10 @@ export function LocationsPage() {
                           <button onClick={() => downloadTableQr(table)} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full hover:bg-blue-100 transition-colors">
                             <Download size={12} /> PNG
                           </button>
-                          <button onClick={() => setEditingTable({ id: table.id, number: String(table.number), seats: String(table.seats) })} className="flex items-center text-xs bg-amber-50 text-amber-600 px-2.5 py-1 rounded-full hover:bg-amber-100 transition-colors">
+                          <button onClick={() => setEditingTable({ id: table.id, number: String(table.number), seats: String(table.seats) })} className="flex items-center text-xs bg-amber-50 text-amber-600 px-2.5 py-1 rounded-full hover:bg-amber-100 transition-colors" aria-label={`Edit table ${table.number}`} title={`Edit table ${table.number}`}>
                             <Pencil size={12} />
                           </button>
-                          <button onClick={() => delTable(table.id, table.number)} className="flex items-center text-xs bg-red-50 text-red-500 px-2.5 py-1 rounded-full hover:bg-red-100 transition-colors">
+                          <button onClick={() => delTable(table.id, table.number)} className="flex items-center text-xs bg-red-50 text-red-500 px-2.5 py-1 rounded-full hover:bg-red-100 transition-colors" aria-label={`Delete table ${table.number}`} title={`Delete table ${table.number}`}>
                             <Trash2 size={12} />
                           </button>
                         </div>
@@ -458,12 +616,18 @@ export function LocationsPage() {
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
               <h2 className="font-semibold text-gray-700 mb-3 text-sm">Add Room</h2>
               <div className="flex gap-2 flex-wrap">
-                <input type="number" value={roomNum} onChange={(e) => setRoomNum(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && addRoom()} placeholder="Room #"
-                  className={`w-24 ${inp('focus:ring-blue-300')}`} />
-                <input type="text" value={roomName} onChange={(e) => setRoomName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && addRoom()} placeholder="Room name (optional)"
-                  className={`flex-1 min-w-32 ${inp('focus:ring-blue-300')}`} />
+                <label className="flex w-24 flex-col gap-1 text-xs font-semibold text-gray-500">
+                  Room #
+                  <input type="number" value={roomNum} onChange={(e) => setRoomNum(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && addRoom()} placeholder="101"
+                    className={inp('focus:ring-blue-300')} />
+                </label>
+                <label className="flex flex-1 min-w-32 flex-col gap-1 text-xs font-semibold text-gray-500">
+                  Room name
+                  <input type="text" value={roomName} onChange={(e) => setRoomName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && addRoom()} placeholder="Optional"
+                    className={inp('focus:ring-blue-300')} />
+                </label>
                 <button onClick={addRoom} className="flex items-center gap-1 bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors">
                   <Plus size={14} /> Add
                 </button>
@@ -507,6 +671,10 @@ export function LocationsPage() {
             )}
           </>
         )}
+
+        {activeTab === 'takeaway' && renderServiceQrCard('takeaway')}
+
+        {activeTab === 'delivery' && renderServiceQrCard('delivery')}
       </div>
 
       {/* â”€â”€ Takeaway QR modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
@@ -533,6 +701,36 @@ export function LocationsPage() {
                 <Download size={15} /> Download
               </button>
               <button onClick={() => setTakeawayQrOpen(false)} className="flex flex-col items-center gap-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl text-xs font-medium hover:bg-gray-200 transition-colors">
+                <Check size={15} className="opacity-0" /> Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deliveryQrOpen && deliveryUrl && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setDeliveryQrOpen(false)}>
+          <div className="bg-white rounded-3xl p-6 flex flex-col items-center gap-4 w-full max-w-xs" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2">
+              <Truck size={18} className="text-teal-500" />
+              <h2 className="font-bold text-gray-900 text-lg">Delivery QR</h2>
+            </div>
+            <p className="text-xs text-gray-400 -mt-2 text-center">Customers scan this to place delivery orders</p>
+            <a href={deliveryUrl} target="_blank" rel="noopener noreferrer" title="Open link" className="p-3 bg-gray-50 rounded-2xl">
+              <QRCodeSVG value={deliveryUrl} size={200} />
+            </a>
+            <button onClick={() => copyUrl(deliveryUrl)} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 transition-colors">
+              {copiedUrl === deliveryUrl ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
+              {copiedUrl === deliveryUrl ? 'Copied!' : <span className="truncate max-w-[220px]">{deliveryUrl}</span>}
+            </button>
+            <div className="grid grid-cols-3 gap-2 w-full">
+              <button onClick={() => { printDelivery(); setDeliveryQrOpen(false); }} className="flex flex-col items-center gap-1 bg-teal-600 text-white py-2.5 rounded-xl text-xs font-medium hover:bg-teal-700 transition-colors">
+                <Printer size={15} /> Print
+              </button>
+              <button onClick={downloadDeliveryQr} className="flex flex-col items-center gap-1 bg-blue-600 text-white py-2.5 rounded-xl text-xs font-medium hover:bg-blue-700 transition-colors">
+                <Download size={15} /> Download
+              </button>
+              <button onClick={() => setDeliveryQrOpen(false)} className="flex flex-col items-center gap-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl text-xs font-medium hover:bg-gray-200 transition-colors">
                 <Check size={15} className="opacity-0" /> Close
               </button>
             </div>

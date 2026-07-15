@@ -7,6 +7,7 @@ import {
   QrCode, MapPin, MonitorPlay, ChefHat, ImagePlus,
   Receipt, Users, Warehouse, BarChart2,
   Settings, Star, ArrowLeft, CreditCard, MessageSquarePlus,
+  ClipboardList, BriefcaseBusiness, SlidersHorizontal,
 } from 'lucide-react';
 
 type NavLeaf = { label: string; icon: React.ElementType; to: string; color: string };
@@ -14,22 +15,62 @@ type NavGroup = { label: string; icon: React.ElementType; color: string; childre
 type NavEntry = ({ type: 'item' } & NavLeaf) | ({ type: 'group' } & NavGroup);
 
 const TOP_NAV: NavEntry[] = [
-  { type: 'item',  label: 'Dashboard', icon: LayoutDashboard, to: '/admin/dashboard', color: 'bg-blue-50   text-blue-600'   },
-  { type: 'item',  label: 'Orders',    icon: ShoppingCart,    to: '/admin/orders',    color: 'bg-orange-50 text-orange-600' },
-  { type: 'item',  label: 'Menu',      icon: UtensilsCrossed, to: '/admin/menu',      color: 'bg-green-50  text-green-600'  },
-  { type: 'item',  label: 'QR',    icon: QrCode, to: '/admin/locations', color: 'bg-purple-50 text-purple-600' },
-  { type: 'item',  label: 'Floor',          icon: MapPin,      to: '/admin/floor',         color: 'bg-purple-50 text-purple-600' },
-  { type: 'item',  label: 'Kitchen',        icon: ChefHat,     to: '/kitchen',              color: 'bg-red-50    text-red-600'    },
-  { type: 'item',  label: 'Ready Display',  icon: MonitorPlay, to: '/admin/ready-display',  color: 'bg-red-50    text-red-600'    },
-  { type: 'item',  label: 'Promo Screens',  icon: ImagePlus,   to: '/admin/promo-screens',  color: 'bg-sky-50    text-sky-600'    },
-  { type: 'item', label: 'Finance', icon: Receipt, to: '/admin/finance', color: 'bg-teal-50 text-teal-600' },
-  { type: 'item', label: 'Staff',   icon: Users,     to: '/admin/users',   color: 'bg-indigo-50 text-indigo-600' },
-  { type: 'item', label: 'Stock',   icon: Warehouse, to: '/admin/stock',   color: 'bg-amber-50  text-amber-600'  },
-  { type: 'item', label: 'Loyalty', icon: Star,      to: '/admin/loyalty', color: 'bg-amber-50  text-amber-600'  },
-  { type: 'item', label: 'Reports', icon: BarChart2, to: '/admin/reports', color: 'bg-gray-100 text-gray-600' },
-  { type: 'item', label: 'Subscription', icon: CreditCard, to: '/admin/billing', color: 'bg-pink-50 text-pink-600' },
-  { type: 'item', label: 'Feedback', icon: MessageSquarePlus, to: '/admin/feedback', color: 'bg-sky-50 text-sky-600' },
-  { type: 'item', label: 'Settings', icon: Settings, to: '/admin/settings', color: 'bg-gray-100 text-gray-600' },
+  { type: 'item', label: 'Orders', icon: ShoppingCart, to: '/admin/orders', color: 'bg-orange-50 text-orange-600' },
+  {
+    type: 'group',
+    label: 'Service',
+    icon: ClipboardList,
+    color: 'bg-orange-50 text-orange-600',
+    children: [
+      { label: 'Dashboard', icon: LayoutDashboard, to: '/admin/dashboard', color: 'bg-blue-50 text-blue-600' },
+      { label: 'Floor', icon: MapPin, to: '/admin/floor', color: 'bg-purple-50 text-purple-600' },
+      { label: 'Kitchen', icon: ChefHat, to: '/kitchen', color: 'bg-red-50 text-red-600' },
+      { label: 'Ready Display', icon: MonitorPlay, to: '/admin/ready-display', color: 'bg-red-50 text-red-600' },
+    ],
+  },
+  {
+    type: 'group',
+    label: 'Menu & QR',
+    icon: QrCode,
+    color: 'bg-green-50 text-green-600',
+    children: [
+      { label: 'Menu', icon: UtensilsCrossed, to: '/admin/menu', color: 'bg-green-50 text-green-600' },
+      { label: 'Locations & QR', icon: QrCode, to: '/admin/locations', color: 'bg-purple-50 text-purple-600' },
+      { label: 'Promo Screens', icon: ImagePlus, to: '/admin/promo-screens', color: 'bg-sky-50 text-sky-600' },
+    ],
+  },
+  {
+    type: 'group',
+    label: 'Operations',
+    icon: Warehouse,
+    color: 'bg-amber-50 text-amber-600',
+    children: [
+      { label: 'Stock', icon: Warehouse, to: '/admin/stock', color: 'bg-amber-50 text-amber-600' },
+      { label: 'Staff', icon: Users, to: '/admin/users', color: 'bg-indigo-50 text-indigo-600' },
+    ],
+  },
+  {
+    type: 'group',
+    label: 'Business',
+    icon: BriefcaseBusiness,
+    color: 'bg-teal-50 text-teal-600',
+    children: [
+      { label: 'Bills & Payments', icon: Receipt, to: '/admin/finance', color: 'bg-teal-50 text-teal-600' },
+      { label: 'Loyalty', icon: Star, to: '/admin/loyalty', color: 'bg-amber-50 text-amber-600' },
+      { label: 'Reports', icon: BarChart2, to: '/admin/reports', color: 'bg-gray-100 text-gray-600' },
+      { label: 'Feedback', icon: MessageSquarePlus, to: '/admin/feedback', color: 'bg-sky-50 text-sky-600' },
+    ],
+  },
+  {
+    type: 'group',
+    label: 'Setup',
+    icon: SlidersHorizontal,
+    color: 'bg-gray-100 text-gray-600',
+    children: [
+      { label: 'Subscription', icon: CreditCard, to: '/admin/billing', color: 'bg-pink-50 text-pink-600' },
+      { label: 'Settings', icon: Settings, to: '/admin/settings', color: 'bg-gray-100 text-gray-600' },
+    ],
+  },
 ];
 
 function Tile({ label, icon: Icon, color, onClick, to }: {

@@ -109,18 +109,20 @@ export function DashboardPage() {
   // â”€â”€ derived values â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const todayStr      = new Date().toLocaleDateString('en-CA');
   const todayOrders   = orders.filter((o) => new Date(o.createdAt).toLocaleDateString('en-CA') === todayStr);
-  const activeOrders  = orders.filter((o) => o.status !== 'cancelled');
+  const activeOrders  = orders.filter((o) => o.status !== 'cancelled' && o.status !== 'paid' && !o.paymentMethod);
   const completed     = todayOrders.filter((o) => o.status === 'ready');
   const cancelled     = todayOrders.filter((o) => o.status === 'cancelled');
   const todayRevenue  = today?.revenue ?? todayOrders.reduce((s, o) => s + Number(o.totalAmount), 0);
   const avgOrderValue = todayOrders.length > 0 ? todayRevenue / todayOrders.length : 0;
   const lowStock      = stockItems.filter((i) => i.minThreshold > 0 && i.quantity <= i.minThreshold);
+  const unpaidBills   = todayOrders.filter((o) => o.status !== 'cancelled' && !o.paymentMethod);
 
   // Upcoming reservations for today, soonest first
   const upcomingReservations = todayReservations
     .filter((r) => r.status === 'booked' && new Date(r.reservedAt).getTime() >= now.getTime())
     .sort((a, b) => new Date(a.reservedAt).getTime() - new Date(b.reservedAt).getTime())
     .slice(0, 3);
+  const reservationsSoon = upcomingReservations.filter((r) => minutesUntil(r.reservedAt) <= 120);
 
   function minutesUntil(iso: string): number {
     return Math.max(0, Math.round((new Date(iso).getTime() - now.getTime()) / 60_000));
@@ -202,6 +204,65 @@ export function DashboardPage() {
     return { hour: `${h > 12 ? h - 12 : h}${h >= 12 ? 'pm' : 'am'}`, orders: hourOrders };
   });
   const peakHour = [...hourlyData].sort((a, b) => b.orders - a.orders)[0];
+  const hasAnalyticsData =
+    todayOrders.length > 0 ||
+    weeklyData.some((d) => d.revenue > 0 || d.orders > 0) ||
+    topCats.length > 0 ||
+    orderTypeData.length > 0 ||
+    Boolean(trendingItem);
+
+  const attentionItems = [
+    {
+      label: 'Active orders',
+      value: activeOrders.length,
+      helper: activeOrders.length > 0 ? 'Open live queue' : 'All clear',
+      to: '/admin/orders',
+      Icon: ShoppingBag,
+      cardCls: activeOrders.length > 0 ? 'border-orange-200 bg-orange-50' : 'border-gray-100 bg-white',
+      iconCls: activeOrders.length > 0 ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-400',
+      valueCls: activeOrders.length > 0 ? 'text-orange-700' : 'text-gray-900',
+    },
+    {
+      label: 'Stale tables',
+      value: staleTables,
+      helper: staleTables > 0 ? 'Needs follow-up' : 'No stale tables',
+      to: '/admin/floor',
+      Icon: AlertTriangle,
+      cardCls: staleTables > 0 ? 'border-red-200 bg-red-50' : 'border-gray-100 bg-white',
+      iconCls: staleTables > 0 ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-400',
+      valueCls: staleTables > 0 ? 'text-red-700' : 'text-gray-900',
+    },
+    {
+      label: 'Low stock',
+      value: lowStock.length,
+      helper: lowStock.length > 0 ? 'Restock soon' : 'Stock healthy',
+      to: '/admin/stock',
+      Icon: AlertTriangle,
+      cardCls: lowStock.length > 0 ? 'border-amber-200 bg-amber-50' : 'border-gray-100 bg-white',
+      iconCls: lowStock.length > 0 ? 'bg-amber-400 text-white' : 'bg-gray-100 text-gray-400',
+      valueCls: lowStock.length > 0 ? 'text-amber-700' : 'text-gray-900',
+    },
+    {
+      label: 'Unpaid bills',
+      value: unpaidBills.length,
+      helper: unpaidBills.length > 0 ? 'Collect payment' : 'Nothing unpaid',
+      to: '/admin/finance',
+      Icon: Receipt,
+      cardCls: unpaidBills.length > 0 ? 'border-blue-200 bg-blue-50' : 'border-gray-100 bg-white',
+      iconCls: unpaidBills.length > 0 ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-400',
+      valueCls: unpaidBills.length > 0 ? 'text-blue-700' : 'text-gray-900',
+    },
+    {
+      label: 'Reservations soon',
+      value: reservationsSoon.length,
+      helper: reservationsSoon[0] ? fmtCountdown(minutesUntil(reservationsSoon[0].reservedAt)) : 'None in 2 hours',
+      to: '/admin/floor',
+      Icon: Clock,
+      cardCls: reservationsSoon.length > 0 ? 'border-purple-200 bg-purple-50' : 'border-gray-100 bg-white',
+      iconCls: reservationsSoon.length > 0 ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-400',
+      valueCls: reservationsSoon.length > 0 ? 'text-purple-700' : 'text-gray-900',
+    },
+  ];
 
   // Recent orders filtered
   const recentOrders = [...orders]
@@ -329,6 +390,39 @@ export function DashboardPage() {
 
           <TrialBanner />
 
+          {/* ── Today needs attention ─────────────────────────────────────── */}
+          <section className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div>
+                <h2 className="text-sm font-bold text-gray-900">Today needs attention</h2>
+                <p className="text-xs text-gray-400">Jump straight to the operational items that can block service</p>
+              </div>
+              <span className="hidden sm:inline-flex text-[11px] font-semibold text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full">
+                {now.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {attentionItems.map((item) => (
+                <Link
+                  key={item.label}
+                  to={item.to}
+                  className={`rounded-xl border p-3 transition-colors hover:border-gray-300 ${item.cardCls}`}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${item.iconCls}`}>
+                      <item.Icon size={15} />
+                    </div>
+                    <ArrowUpRight size={14} className="text-gray-300" />
+                  </div>
+                  <p className={`text-2xl font-bold leading-none tabular-nums ${item.valueCls}`}>{item.value}</p>
+                  <p className="text-xs font-semibold text-gray-700 mt-1">{item.label}</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5 truncate">{item.helper}</p>
+                </Link>
+              ))}
+            </div>
+          </section>
+
           {/* â”€â”€ Stat Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {stats.map((s) => (
@@ -454,6 +548,8 @@ export function DashboardPage() {
 
           </div>
 
+          {hasAnalyticsData ? (
+          <>
           {/* â”€â”€ 3-column grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
@@ -762,6 +858,21 @@ export function DashboardPage() {
 
             </div>
           </div>
+          </>
+          ) : (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4">
+              <div className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <TrendingUp size={18} className="text-gray-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-gray-900">Analytics will appear after today's first orders</p>
+                <p className="text-xs text-gray-400 mt-0.5">Revenue trends, top categories, sales mix, and trending items stay collapsed while there is no useful data.</p>
+              </div>
+              <Link to="/admin/orders" className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-orange-500 hover:underline">
+                View orders <ArrowUpRight size={13} />
+              </Link>
+            </div>
+          )}
 
         </div>
       </div>
