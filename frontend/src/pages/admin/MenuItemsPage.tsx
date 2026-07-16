@@ -487,21 +487,21 @@ export function MenuItemsPage() {
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       <AdminHeader title="Menu" backTo="/admin" />
 
-      {/* Tab bar — with the items action toolbar on the same row */}
-      <div className="flex items-center gap-2 bg-white border-b border-gray-100 px-3 sm:px-4 lg:px-6 pt-2">
-        <div className="flex gap-1 overflow-x-auto">
+      <div className="flex">
+        {/* Sub-nav (vertical) */}
+        <nav className="w-52 shrink-0 border-r border-gray-100 bg-white sticky top-0 self-start px-2 py-3 space-y-1">
           {MENU_TABS.map((tab) => {
             const active = activeTab === tab.id;
             const count = tab.id === 'items' ? items.length : tab.id === 'setup' ? categories.length : null;
             return (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`shrink-0 flex items-center gap-2 px-3 py-2 border-b-2 text-sm font-semibold transition-colors whitespace-nowrap ${
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
                   active
-                    ? 'border-orange-500 text-orange-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                    ? 'bg-orange-50 text-orange-600'
+                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                 }`}>
                 <tab.Icon size={15} />
-                {tab.label}
+                <span className="flex-1 text-left">{tab.label}</span>
                 {count != null && (
                   <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
                     active ? 'text-orange-500' : 'text-gray-400'
@@ -510,49 +510,52 @@ export function MenuItemsPage() {
               </button>
             );
           })}
-        </div>
+        </nav>
 
-        {activeTab === 'items' && (
-          <div className="ml-auto flex items-center gap-1 py-1.5">
-            {user?.restaurantId && (
-              <a
-                href={`/takeaway/${user.restaurantId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Preview menu as customer"
-                aria-label="Preview menu as customer"
-                className="min-h-10 min-w-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
-              >
-                <ExternalLink size={17} />
-              </a>
-            )}
-            <button
-              onClick={() => setReorderMode((m) => !m)}
-              title={reorderMode ? 'Done reordering' : 'Drag to reorder items'}
-              className={`p-2 rounded-lg transition-colors ${reorderMode ? 'bg-orange-50 text-orange-600' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'}`}
-            >
-              <GripVertical size={17} />
-            </button>
-            <button onClick={handleExport} title="Export CSV" className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors">
-              <Download size={17} />
-            </button>
-            <button onClick={() => importRef.current?.click()} disabled={importing} title="Import CSV"
-              className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50">
-              {importing ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
-            </button>
-            <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
-            <button onClick={openNew} className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors whitespace-nowrap">
-              <Plus size={14} /> Add Item
-            </button>
-          </div>
-        )}
-      </div>
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          {activeTab === 'items' && (
+            <div className="flex items-center gap-1 bg-white border-b border-gray-100 px-3 sm:px-4 lg:px-6 py-2">
+              <div className="ml-auto flex items-center gap-1">
+                {user?.restaurantId && (
+                  <a
+                    href={`/takeaway/${user.restaurantId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Preview menu as customer"
+                    aria-label="Preview menu as customer"
+                    className="min-h-10 min-w-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+                  >
+                    <ExternalLink size={17} />
+                  </a>
+                )}
+                <button
+                  onClick={() => setReorderMode((m) => !m)}
+                  title={reorderMode ? 'Done reordering' : 'Drag to reorder items'}
+                  className={`p-2 rounded-lg transition-colors ${reorderMode ? 'bg-orange-50 text-orange-600' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'}`}
+                >
+                  <GripVertical size={17} />
+                </button>
+                <button onClick={handleExport} title="Export CSV" className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors">
+                  <Download size={17} />
+                </button>
+                <button onClick={() => importRef.current?.click()} disabled={importing} title="Import CSV"
+                  className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50">
+                  {importing ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
+                </button>
+                <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
+                <button onClick={openNew} className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors whitespace-nowrap">
+                  <Plus size={14} /> Add Item
+                </button>
+              </div>
+            </div>
+          )}
 
-      {activeTab === 'setup'     && <MenuSetupPanel />}
-      {activeTab === 'combos'    && <CombosPanel />}
-      {activeTab === 'schedules' && <MenuSchedulesPanel />}
+          {activeTab === 'setup'     && <MenuSetupPanel />}
+          {activeTab === 'combos'    && <CombosPanel />}
+          {activeTab === 'schedules' && <MenuSchedulesPanel />}
 
-      {activeTab === 'items' && <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
+          {activeTab === 'items' && <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
 
         {/* â”€â”€ Search & filter bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="bg-white border border-gray-100 rounded-lg px-3 py-2 flex flex-wrap gap-2 items-end">
@@ -1272,6 +1275,8 @@ export function MenuItemsPage() {
         </div>
         )}
       </div>}
+        </div>
+      </div>
 
       {activeTab === 'items' && recipeItem && (
         <RecipeModal menuItem={recipeItem} onClose={() => setRecipeItem(null)} />
