@@ -489,27 +489,29 @@ export function MenuItemsPage() {
 
       <div className="flex">
         {/* Sub-nav (vertical) */}
-        <nav className="w-52 shrink-0 border-r border-gray-100 bg-white sticky top-0 self-start px-2 py-3 space-y-1">
-          {MENU_TABS.map((tab) => {
-            const active = activeTab === tab.id;
-            const count = tab.id === 'items' ? items.length : tab.id === 'setup' ? categories.length : null;
-            return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                  active
-                    ? 'bg-orange-50 text-orange-600'
-                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                }`}>
-                <tab.Icon size={15} />
-                <span className="flex-1 text-left">{tab.label}</span>
-                {count != null && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
-                    active ? 'text-orange-500' : 'text-gray-400'
-                  }`}>{count}</span>
-                )}
-              </button>
-            );
-          })}
+        <nav className="w-52 shrink-0 sticky top-0 self-start p-3">
+          <div className="bg-white rounded-lg border border-gray-100 p-3 space-y-2">
+            {MENU_TABS.map((tab) => {
+              const active = activeTab === tab.id;
+              const count = tab.id === 'items' ? items.length : tab.id === 'setup' ? categories.length : null;
+              return (
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg border text-sm font-semibold transition-colors ${
+                    active
+                      ? 'border-green-600 bg-green-50 text-green-700'
+                      : 'border-gray-200 bg-white text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}>
+                  <span className="flex items-center gap-2 truncate">
+                    <tab.Icon size={15} />
+                    {tab.label}
+                  </span>
+                  {count != null && (
+                    <span className={`text-xs ${active ? 'text-green-600' : 'text-gray-400'}`}>{count}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </nav>
 
         {/* Content */}
