@@ -1976,14 +1976,6 @@ export function SettingsPage() {
                   </div>
                   <ChevronRight size={15} className="text-gray-300 flex-shrink-0" />
                 </Link>
-
-                <button
-                  onClick={() => { logout(); navigate('/', { replace: true }); }}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-red-200 px-3 py-3 text-sm font-semibold text-red-500 transition-colors hover:bg-red-50"
-                >
-                  <LogOut size={16} />
-                  Log out
-                </button>
               </div>
             </nav>
 
