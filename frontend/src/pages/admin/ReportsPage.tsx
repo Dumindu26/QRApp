@@ -1739,27 +1739,35 @@ export function ReportsPage() {
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
         <AdminHeader title="Reports" backTo="/admin" icon={BarChart2} />
 
-        {/* Tab bar (pill style) */}
-        <div className="bg-white shadow-sm px-3 sm:px-4 lg:px-6 pt-3 pb-3 flex items-center gap-2 overflow-x-auto">
-          {REPORT_TABS.map((tab) => {
-            const active = activeTab === tab.id;
-            return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${
-                  active
-                    ? 'bg-orange-500 text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                }`}>
-                <tab.Icon size={15} />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+        <div className="flex items-start">
+          <aside className="w-[216px] shrink-0 self-stretch border-r border-gray-100 bg-white p-3">
+            <nav className="space-y-2" aria-label="Report sections">
+              {REPORT_TABS.map((tab) => {
+                const active = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${
+                      active
+                        ? 'bg-green-700 text-white shadow-sm'
+                        : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+                    }`}
+                  >
+                    <tab.Icon size={15} className="shrink-0" />
+                    <span className="truncate">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </aside>
 
-        {activeTab === 'orders' && <ReportsPanel />}
-        {activeTab === 'shift'  && <ShiftCloseReportPanel />}
-        {activeTab === 'stock'  && <StockReportPanel />}
+          <div className="flex-1 min-w-0">
+            {activeTab === 'orders' && <ReportsPanel />}
+            {activeTab === 'shift'  && <ShiftCloseReportPanel />}
+            {activeTab === 'stock'  && <StockReportPanel />}
+          </div>
+        </div>
       </main>
     </div>
   );

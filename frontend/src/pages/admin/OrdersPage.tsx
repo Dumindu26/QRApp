@@ -185,6 +185,19 @@ export function OrdersPage() {
     if (statusDelta !== 0) return statusDelta;
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
+  const typeTabsWithCounts = TYPE_TABS.map((tt) => {
+    const count =
+      tt.value === 'all'
+        ? orders.filter((o) => o.status !== 'cancelled').length
+        : tt.value === 'dine-in'
+        ? orders.filter((o) => o.orderType !== 'takeaway' && o.orderType !== 'room-service' && o.orderType !== 'delivery' && o.status !== 'cancelled').length
+        : tt.value === 'takeaway'
+        ? orders.filter((o) => o.orderType === 'takeaway' && o.status !== 'cancelled').length
+        : tt.value === 'room-service'
+        ? orders.filter((o) => o.orderType === 'room-service' && o.status !== 'cancelled').length
+        : orders.filter((o) => o.orderType === 'delivery' && o.status !== 'cancelled').length;
+    return { ...tt, count };
+  });
 
   const orderGroups = [
     { key: 'takeaway',     label: 'Takeaway',     dot: 'bg-purple-400', orders: displayed.filter((o) => o.orderType === 'takeaway') },
@@ -304,43 +317,41 @@ export function OrdersPage() {
           <RefreshCw size={18} />
         </button>
       </AdminHeader>
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-30">
-        {/* Level 1 — order type */}
-        <div className="flex items-center gap-2 px-3 sm:px-4 lg:px-6 pt-2">
-          <div className="flex flex-1 gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {TYPE_TABS.map((tt) => {
-              const count =
-                tt.value === 'all'
-                  ? orders.filter((o) => o.status !== 'cancelled').length
-                  : tt.value === 'dine-in'
-                  ? orders.filter((o) => o.orderType !== 'takeaway' && o.orderType !== 'room-service' && o.orderType !== 'delivery' && o.status !== 'cancelled').length
-                  : tt.value === 'takeaway'
-                  ? orders.filter((o) => o.orderType === 'takeaway' && o.status !== 'cancelled').length
-                  : tt.value === 'room-service'
-                  ? orders.filter((o) => o.orderType === 'room-service' && o.status !== 'cancelled').length
-                  : orders.filter((o) => o.orderType === 'delivery' && o.status !== 'cancelled').length;
-              const active = typeTab === tt.value;
-              return (
-                <button
-                  key={tt.value}
-                  onClick={() => setTypeTab(tt.value)}
-                  className={`shrink-0 flex-1 min-w-max px-3 py-2 border-b-2 text-sm font-semibold transition-colors ${
-                    active ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                  }`}
-                >
-                  {tt.label} · <span className="tabular-nums">{count}</span>
-                </button>
-              );
-            })}
-          </div>
+      <div className="flex flex-1 min-h-0 items-start">
+        <aside className="w-[180px] shrink-0 self-stretch border-r border-gray-100 bg-white p-2">
+          <nav className="rounded-lg border border-gray-100 bg-white p-2" aria-label="Order types">
+            <div className="space-y-2">
+              {typeTabsWithCounts.map((tt) => {
+                const active = typeTab === tt.value;
+                return (
+                  <button
+                    key={tt.value}
+                    type="button"
+                    onClick={() => setTypeTab(tt.value)}
+                    className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+                      active
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="truncate">{tt.label}</span>
+                    <span className={`shrink-0 text-xs font-bold tabular-nums ${active ? 'text-green-700' : 'text-gray-400'}`}>{tt.count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
           <Link
             to="/admin/new-order"
             role="button"
-            className="flex items-center gap-1.5 bg-orange-500 text-white px-3 py-2 rounded-lg text-sm font-semibold hover:bg-orange-600 transition-colors shrink-0"
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-800"
           >
             <Plus size={16} /> New
           </Link>
-        </div>
+        </aside>
+
+        <div className="flex-1 min-w-0 md:min-h-0 md:flex md:flex-col">
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-30">
 
         {/* Level 2 — order status */}
         <div className="relative">
@@ -817,6 +828,8 @@ export function OrdersPage() {
           onDone={handleAddItemsDone}
         />
       )}
+        </div>
+      </div>
       </main>
     </div>
   );

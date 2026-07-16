@@ -187,9 +187,9 @@ export function ReservationsPage({ embedded = false }: { embedded?: boolean }) {
                   <button onClick={() => openNew(key)} className="opacity-0 hover:opacity-100 focus:opacity-100 text-gray-300 hover:text-orange-500 transition-opacity" title="Add reservation"><Plus size={13} /></button>
                 </div>
                 <div className="space-y-1">
-                  {dayItems.slice(0, 3).map((r) => (
+                  {dayItems.slice(0, 3).map((r, reservationIndex) => (
                     <button
-                      key={r.id}
+                      key={`${label ?? 'calendar'}-${key}-${r.id}-${reservationIndex}`}
                       onClick={() => openEdit(r)}
                       className={`w-full text-left text-[11px] leading-tight px-1.5 py-1 rounded-md truncate flex items-center gap-1 ${STATUS_META[r.status].cls} ${r.status === 'cancelled' ? 'line-through opacity-70' : ''}`}
                       title={`${timeStr(r.reservedAt)}  .  ${r.customerName}  .  ${locationLabel(r)}`}
@@ -302,8 +302,8 @@ export function ReservationsPage({ embedded = false }: { embedded?: boolean }) {
               <EmptyState icon={CalendarDays} title="No reservations" description="No reservations for this day" />
             ) : (
               <div className="space-y-2.5">
-                {visibleItems.map((r) => (
-                  <div key={r.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                {visibleItems.map((r, reservationIndex) => (
+                  <div key={`${r.id}-${r.reservedAt}-${reservationIndex}`} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                     <div className="flex items-start gap-3">
                       <div className="text-center shrink-0 w-16">
                         <p className="text-lg font-bold text-gray-900 leading-tight tabular-nums">{timeStr(r.reservedAt)}</p>

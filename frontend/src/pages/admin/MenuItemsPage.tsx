@@ -475,6 +475,10 @@ export function MenuItemsPage() {
   const filteredIds = filteredItems.map((item) => item.id);
   const selectedItems = items.filter((item) => selectedIds.has(item.id));
   const allFilteredSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
+  const categoryCounts = categories.map((category) => ({
+    ...category,
+    count: items.filter((item) => item.category === category.id).length,
+  }));
 
   // Shared field styles for the edit/create modal
   const labelCls = 'text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block';
@@ -487,21 +491,20 @@ export function MenuItemsPage() {
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
       <AdminHeader title="Menu" backTo="/admin" />
 
-      <div className="flex">
-        {/* Sub-nav (vertical) */}
-        <nav className="w-52 shrink-0 border-r border-gray-100 bg-white sticky top-0 self-start px-2 py-3 space-y-1">
+      <div className="bg-white border-b border-gray-100 px-3 sm:px-4 lg:px-6 py-2 flex items-center gap-2">
+        <nav className="flex flex-1 gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Menu sections">
           {MENU_TABS.map((tab) => {
             const active = activeTab === tab.id;
             const count = tab.id === 'items' ? items.length : tab.id === 'setup' ? categories.length : null;
             return (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                className={`shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
                   active
-                    ? 'bg-orange-50 text-orange-600'
+                    ? 'bg-orange-50 text-orange-700'
                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                 }`}>
                 <tab.Icon size={15} />
-                <span className="flex-1 text-left">{tab.label}</span>
+                <span>{tab.label}</span>
                 {count != null && (
                   <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
                     active ? 'text-orange-500' : 'text-gray-400'
@@ -511,46 +514,84 @@ export function MenuItemsPage() {
             );
           })}
         </nav>
+        {activeTab === 'items' && (
+          <div className="shrink-0 flex items-center gap-1">
+            {user?.restaurantId && (
+              <a
+                href={`/takeaway/${user.restaurantId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Preview menu as customer"
+                aria-label="Preview menu as customer"
+                className="min-h-10 min-w-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+              >
+                <ExternalLink size={17} />
+              </a>
+            )}
+            <button
+              onClick={() => setReorderMode((m) => !m)}
+              title={reorderMode ? 'Done reordering' : 'Drag to reorder items'}
+              className={`min-h-10 min-w-10 flex items-center justify-center rounded-lg transition-colors ${reorderMode ? 'bg-orange-50 text-orange-600' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'}`}
+            >
+              <GripVertical size={17} />
+            </button>
+            <button onClick={handleExport} title="Export CSV" className="min-h-10 min-w-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors">
+              <Download size={17} />
+            </button>
+            <button onClick={() => importRef.current?.click()} disabled={importing} title="Import CSV"
+              className="min-h-10 min-w-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50">
+              {importing ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
+            </button>
+            <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
+            <button onClick={openNew} className="flex min-h-10 items-center gap-1 rounded-lg bg-green-700 px-3 text-sm font-semibold text-white transition-colors hover:bg-green-800 whitespace-nowrap">
+              <Plus size={14} /> Add Item
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-start">
+        {activeTab === 'items' && (
+          <aside className="w-[180px] shrink-0 self-start sticky top-0 p-2">
+            <nav className="rounded-lg border border-gray-100 bg-white p-2" aria-label="Menu categories">
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setCatFilter('all')}
+                  className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+                    catFilter === 'all'
+                      ? 'border-green-500 bg-green-50 text-green-700'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="truncate">All</span>
+                  <span className={`shrink-0 text-xs font-bold tabular-nums ${catFilter === 'all' ? 'text-green-700' : 'text-gray-400'}`}>{items.length}</span>
+                </button>
+                {categoryCounts.map((category) => {
+                  const active = catFilter === category.id;
+                  return (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() => setCatFilter(category.id)}
+                      className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+                        active
+                          ? 'border-green-500 bg-green-50 text-green-700'
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="truncate">{category.name}</span>
+                      <span className={`shrink-0 text-xs font-bold tabular-nums ${active ? 'text-green-700' : 'text-gray-400'}`}>{category.count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
+          </aside>
+        )}
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          {activeTab === 'items' && (
-            <div className="flex items-center gap-1 bg-white border-b border-gray-100 px-3 sm:px-4 lg:px-6 py-2">
-              <div className="ml-auto flex items-center gap-1">
-                {user?.restaurantId && (
-                  <a
-                    href={`/takeaway/${user.restaurantId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Preview menu as customer"
-                    aria-label="Preview menu as customer"
-                    className="min-h-10 min-w-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
-                  >
-                    <ExternalLink size={17} />
-                  </a>
-                )}
-                <button
-                  onClick={() => setReorderMode((m) => !m)}
-                  title={reorderMode ? 'Done reordering' : 'Drag to reorder items'}
-                  className={`p-2 rounded-lg transition-colors ${reorderMode ? 'bg-orange-50 text-orange-600' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'}`}
-                >
-                  <GripVertical size={17} />
-                </button>
-                <button onClick={handleExport} title="Export CSV" className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors">
-                  <Download size={17} />
-                </button>
-                <button onClick={() => importRef.current?.click()} disabled={importing} title="Import CSV"
-                  className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50">
-                  {importing ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
-                </button>
-                <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
-                <button onClick={openNew} className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors whitespace-nowrap">
-                  <Plus size={14} /> Add Item
-                </button>
-              </div>
-            </div>
-          )}
-
           {activeTab === 'setup'     && <MenuSetupPanel />}
           {activeTab === 'combos'    && <CombosPanel />}
           {activeTab === 'schedules' && <MenuSchedulesPanel />}
@@ -579,21 +620,6 @@ export function MenuItemsPage() {
               )}
             </div>
           </div>
-
-          {/* Category filter */}
-          <label className="flex flex-col gap-1 text-xs font-semibold text-gray-500">
-            Category
-            <select
-              value={catFilter}
-              onChange={(e) => setCatFilter(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-orange-300 text-gray-600 bg-white"
-            >
-              <option value="all">All categories</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </label>
 
           {/* Availability filter */}
           <label className="flex flex-col gap-1 text-xs font-semibold text-gray-500">

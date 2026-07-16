@@ -293,6 +293,12 @@ export function LocationsPage() {
   // â”€â”€ Shared input style â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const inp = (focus: string) =>
     `border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-1 ${focus} bg-white`;
+  const locationTabs = [
+    { key: 'tables' as const, label: 'Tables', Icon: Table2, count: tables.length },
+    { key: 'rooms' as const, label: 'Rooms', Icon: BedDouble, count: rooms.length },
+    { key: 'takeaway' as const, label: 'Takeaway', Icon: ShoppingBag, count: takeawayUrl ? 1 : 0 },
+    { key: 'delivery' as const, label: 'Delivery', Icon: Truck, count: deliveryUrl ? 1 : 0 },
+  ];
 
   const canPrintActive =
     activeTab === 'tables' ? tables.length > 0
@@ -449,70 +455,40 @@ export function LocationsPage() {
       {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <AdminHeader title="Locations & QR Codes" backTo="/admin" />
 
-      {/* Tab switcher — with Print All on the same row (right-aligned) */}
-      <div className="bg-white border-b border-gray-100 px-3 sm:px-4 lg:px-6 pt-2 flex items-center gap-1 overflow-x-auto">
-        <button
-          onClick={() => switchTab('tables')}
-          className={`flex items-center gap-2 px-3 py-2 border-b-2 text-sm font-semibold transition-colors whitespace-nowrap ${
-            activeTab === 'tables'
-              ? 'border-orange-500 text-orange-600'
-              : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-          }`}
-        >
-          <Table2 size={15} />
-          Tables
-          <span className="text-xs font-bold text-gray-400 tabular-nums">{tables.length}</span>
-        </button>
+      <div className="flex items-start">
+        <aside className="w-[216px] shrink-0 self-stretch border-r border-gray-100 bg-white p-3">
+          <nav className="space-y-2" aria-label="Location sections">
+            {locationTabs.map(({ key, label, Icon, count }) => {
+              const active = activeTab === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => switchTab(key)}
+                  className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${
+                    active
+                      ? 'bg-green-700 text-white shadow-sm'
+                      : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+                  }`}
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Icon size={15} className="shrink-0" />
+                    <span className="truncate">{label}</span>
+                  </span>
+                  <span className={`shrink-0 text-xs font-bold tabular-nums ${active ? 'text-white/80' : 'text-gray-400'}`}>{count}</span>
+                </button>
+              );
+            })}
+          </nav>
+          <button
+            onClick={printActiveTab}
+            disabled={!canPrintActive}
+            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-800 disabled:opacity-40"
+          >
+            <Printer size={14} /> {activeTab === 'tables' || activeTab === 'rooms' ? 'Print All' : 'Print QR'}
+          </button>
+        </aside>
 
-        <button
-          onClick={() => switchTab('rooms')}
-          className={`flex items-center gap-2 px-3 py-2 border-b-2 text-sm font-semibold transition-colors whitespace-nowrap ${
-            activeTab === 'rooms'
-              ? 'border-orange-500 text-orange-600'
-              : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-          }`}
-        >
-          <BedDouble size={15} />
-          Rooms
-          <span className="text-xs font-bold text-gray-400 tabular-nums">{rooms.length}</span>
-        </button>
-
-        <button
-          onClick={() => switchTab('takeaway')}
-          className={`flex items-center gap-2 px-3 py-2 border-b-2 text-sm font-semibold transition-colors whitespace-nowrap ${
-            activeTab === 'takeaway'
-              ? 'border-orange-500 text-orange-600'
-              : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-          }`}
-        >
-          <ShoppingBag size={15} />
-          Takeaway
-          <span className="text-xs font-bold text-gray-400 tabular-nums">{takeawayUrl ? 1 : 0}</span>
-        </button>
-
-        <button
-          onClick={() => switchTab('delivery')}
-          className={`flex items-center gap-2 px-3 py-2 border-b-2 text-sm font-semibold transition-colors whitespace-nowrap ${
-            activeTab === 'delivery'
-              ? 'border-orange-500 text-orange-600'
-              : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-          }`}
-        >
-          <Truck size={15} />
-          Delivery
-          <span className="text-xs font-bold text-gray-400 tabular-nums">{deliveryUrl ? 1 : 0}</span>
-        </button>
-
-        <button
-          onClick={printActiveTab}
-          disabled={!canPrintActive}
-          className="ml-auto flex items-center gap-1.5 text-sm bg-gray-800 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-gray-900 transition-colors disabled:opacity-40 whitespace-nowrap"
-        >
-          <Printer size={14} /> {activeTab === 'tables' || activeTab === 'rooms' ? 'Print All' : 'Print QR'}
-        </button>
-      </div>
-
-      <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4">
+        <div className="flex-1 min-w-0 px-3 sm:px-4 lg:px-6 py-4 space-y-4">
 
         {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TABLES TAB â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         {activeTab === 'tables' && (
@@ -675,6 +651,7 @@ export function LocationsPage() {
         {activeTab === 'takeaway' && renderServiceQrCard('takeaway')}
 
         {activeTab === 'delivery' && renderServiceQrCard('delivery')}
+        </div>
       </div>
 
       {/* â”€â”€ Takeaway QR modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
