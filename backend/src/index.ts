@@ -44,6 +44,7 @@ import promoScreensRouter from './routes/promoScreens';
 import './lib/vapid'; // initialise VAPID keys at startup
 import { startStaleOrderChecker } from './lib/staleOrderChecker';
 import { startSubscriptionChecker } from './lib/subscriptionChecker';
+import { startDemoReset } from './lib/demoReset';
 import { seedPlansIfEmpty, ensureAnnualPrices, reloadPlans } from './lib/planStore';
 import { loadAppSettings } from './lib/appSettings';
 
@@ -197,6 +198,7 @@ async function start() {
       console.log(`Backend running on http://localhost:${PORT} [${isProd ? 'production' : 'development'}]`);
       startStaleOrderChecker();
       startSubscriptionChecker();
+      startDemoReset();
     });
 
     // ── Graceful shutdown (SIGTERM / SIGINT) ──────────────────────────────────

@@ -715,5 +715,9 @@ export async function createSchema(): Promise<void> {
     );
   `);
 
+  // Marks a sandbox tenant used for guided sales demos — excluded from the
+  // subscription-expiry sweep and the only tenant the demo-reset job may touch.
+  await addCol('restaurants', 'is_demo', 'BOOLEAN NOT NULL DEFAULT FALSE');
+
   console.log('✓ Schema ready');
 }

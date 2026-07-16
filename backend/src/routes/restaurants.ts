@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool } from '../db/database';
 import { authenticate, requireRole, AuthRequest, JWT_SECRET } from '../middleware/auth';
+import { resetDemoTenant } from '../lib/demoReset';
 
 const router = Router();
 
@@ -63,6 +64,7 @@ const toRestaurant = (row: Record<string, unknown>) => ({
   subscriptionStatus: (row.subscription_status as string | null) ?? 'active',
   trialEndsAt:        (row.trial_ends_at as string | null) ?? null,
   currentPeriodEnd:   (row.current_period_end as string | null) ?? null,
+  isDemo:             row.is_demo === true,
 });
 
 // ── Public endpoints — no auth required ──────────────────────────────────────
@@ -493,6 +495,20 @@ router.delete('/:id', authenticate, requireRole('super_admin'), async (req: Auth
     res.status(500).json({ error: 'Failed to delete restaurant' });
   } finally {
     client.release();
+  }
+});
+
+// Clears a demo tenant's transactional data (orders, table sessions, refunds)
+// and repopulates history. Refuses to run against any non-demo restaurant.
+router.post('/:id/reset-demo', authenticate, requireRole('super_admin'), async (req: AuthRequest, res) => {
+  const id = String(req.params.id);
+  try {
+    const { ordersCreated } = await resetDemoTenant(id);
+    res.json({ id, reset: true, ordersCreated });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Reset failed';
+    const status = message === 'Restaurant not found' ? 404 : message === 'Restaurant is not a demo tenant' ? 400 : 500;
+    res.status(status).json({ error: message });
   }
 });
 

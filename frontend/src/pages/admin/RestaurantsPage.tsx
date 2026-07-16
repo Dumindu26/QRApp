@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Plus, Pencil, Check, X, Store, LogOut, CheckCircle2, CircleSlash,
   ChevronDown, ChevronUp, LogIn, Users, SlidersHorizontal, Trash2, Search,
-  MessageSquarePlus, ScrollText, CreditCard, Loader2, CalendarClock,
+  MessageSquarePlus, ScrollText, CreditCard, Loader2, CalendarClock, RefreshCw,
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -52,6 +52,7 @@ interface Restaurant {
   id: string; name: string; slug: string; active: boolean; createdAt: string;
   city?: string | null; features?: RestaurantFeatures; plan?: PlanCode;
   subscriptionStatus?: SubscriptionStatus; trialEndsAt?: string | null; currentPeriodEnd?: string | null;
+  isDemo?: boolean;
 }
 interface RestaurantUser { id: string; username: string; name: string; role: string; }
 interface CreatePayload { name: string; adminUsername: string; adminPassword: string; adminName: string; city: string; }
@@ -85,6 +86,7 @@ export function RestaurantsPage() {
   const [usersMap, setUsersMap] = useState<Record<string, RestaurantUser[]>>({});
   const [usersLoading, setUsersLoading] = useState(false);
   const [impersonating, setImpersonating] = useState<string | null>(null);
+  const [resettingDemoId, setResettingDemoId] = useState<string | null>(null);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -191,6 +193,15 @@ export function RestaurantsPage() {
       window.location.href = res.data.user.role === 'kitchen' ? '/kitchen' : '/admin';
     } catch { toast.error('Failed to impersonate user'); }
     finally { setImpersonating(null); }
+  }
+
+  async function resetDemo(r: Restaurant) {
+    setResettingDemoId(r.id);
+    try {
+      const res = await axios.post<{ ordersCreated: number }>(`/api/restaurants/${r.id}/reset-demo`);
+      toast.success(`"${r.name}" reset — ${res.data.ordersCreated} fresh historical orders seeded`);
+    } catch { toast.error('Failed to reset demo data'); }
+    finally { setResettingDemoId(null); }
   }
 
   async function handleCreate() {
@@ -330,6 +341,9 @@ export function RestaurantsPage() {
                           <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${r.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                             {r.active ? <CheckCircle2 size={11} /> : <CircleSlash size={11} />}{r.active ? 'Active' : 'Inactive'}
                           </span>
+                          {r.isDemo && (
+                            <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">Demo</span>
+                          )}
                         </div>
                       )}
                       <p className="text-xs text-gray-400 mt-0.5 font-mono select-all truncate">
@@ -347,6 +361,12 @@ export function RestaurantsPage() {
                         <button onClick={() => startEdit(r)} className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors" title="Rename"><Pencil size={16} /></button>
                       )}
                       <button onClick={() => openManage(r)} className={`p-1.5 transition-colors ${isManage ? 'text-orange-500' : 'text-gray-400 hover:text-orange-500'}`} title="Manage plan & features"><SlidersHorizontal size={16} /></button>
+                      {r.isDemo && (
+                        <button onClick={() => resetDemo(r)} disabled={resettingDemoId === r.id}
+                          className="p-1.5 text-gray-400 hover:text-purple-500 transition-colors disabled:opacity-50" title="Reset demo data">
+                          {resettingDemoId === r.id ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+                        </button>
+                      )}
                       <button onClick={() => setDeleteTarget(r)} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Delete"><Trash2 size={16} /></button>
                       <button onClick={() => toggleExpand(r.id)} className="p-1.5 text-gray-400 hover:text-gray-700 transition-colors" title="View accounts">
                         {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
