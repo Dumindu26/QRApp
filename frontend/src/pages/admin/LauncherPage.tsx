@@ -16,6 +16,8 @@ type NavEntry = ({ type: 'item' } & NavLeaf) | ({ type: 'group' } & NavGroup);
 
 const TOP_NAV: NavEntry[] = [
   { type: 'item', label: 'Orders', icon: ShoppingCart, to: '/admin/orders', color: 'bg-orange-50 text-orange-600' },
+  { type: 'item', label: 'Kitchen', icon: ChefHat, to: '/kitchen', color: 'bg-red-50 text-red-600' },
+  { type: 'item', label: 'Ready Display', icon: MonitorPlay, to: '/admin/ready-display', color: 'bg-red-50 text-red-600' },
   {
     type: 'group',
     id: 'service',
@@ -25,8 +27,6 @@ const TOP_NAV: NavEntry[] = [
     children: [
       { label: 'Dashboard', icon: LayoutDashboard, to: '/admin/dashboard', color: 'bg-blue-50 text-blue-600' },
       { label: 'Floor', icon: MapPin, to: '/admin/floor', color: 'bg-purple-50 text-purple-600' },
-      { label: 'Kitchen', icon: ChefHat, to: '/kitchen', color: 'bg-red-50 text-red-600' },
-      { label: 'Ready Display', icon: MonitorPlay, to: '/admin/ready-display', color: 'bg-red-50 text-red-600' },
     ],
   },
   {
