@@ -1930,7 +1930,7 @@ export function SettingsPage() {
       <AdminSidebar />
 
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0 flex flex-col">
-        <AdminHeader title="Settings" subtitle="Manage your restaurant configuration" />
+        <AdminHeader title="Settings" subtitle="Manage your restaurant configuration" backTo="/admin" />
         <div className="w-full px-3 sm:px-5 py-4 flex-1">
           <div className="flex flex-col lg:flex-row gap-4 items-start">
             {/* ── Settings menu ───────────────────────────────────────────── */}
