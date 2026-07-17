@@ -45,7 +45,7 @@ export function AdminHeader({ title, subtitle, backTo, onBack, icon: Icon, child
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-40">
-      <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3">
+      <div className="px-3 sm:px-4 lg:px-6 py-4 flex items-center gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {navMode === 'launcher' && (
           <Link
             to="/admin/launcher"
@@ -77,7 +77,7 @@ export function AdminHeader({ title, subtitle, backTo, onBack, icon: Icon, child
           </Link>
         )}
         {Icon && <Icon size={20} className="text-orange-500 shrink-0" />}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-[72px]">
           <h1 className="text-xl font-bold text-gray-900 truncate leading-tight">{title}</h1>
           {subtitle && <p className="text-xs text-gray-400 truncate">{subtitle}</p>}
         </div>

@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useConfirm } from '../../components/ConfirmModal';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, UtensilsCrossed, Check, Loader2, BedDouble, Truck, Tag, X, LayoutGrid, List, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Minus, Trash2, ShoppingBag, UtensilsCrossed, Check, Loader2, BedDouble, Truck, Tag, X, LayoutGrid, List, Search } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { Table, Room } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
@@ -18,6 +18,7 @@ import { useCurrency } from '../../context/CurrencyContext';
 import { ToppingSelectionModal } from '../../components/ToppingSelectionModal';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { AdminHeader } from '../../components/AdminHeader';
 
 type OrderMode = 'takeaway' | 'dine-in' | 'room-service' | 'delivery';
 type Size = 'regular' | 'large';
@@ -307,115 +308,100 @@ export function NewOrderPage() {
       {modal}
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
-        <div className="px-3 sm:px-4 lg:px-6 py-3 flex items-center gap-2 overflow-x-auto">
-          <Link
-            to="/admin"
-            className="min-h-10 min-w-10 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50 shrink-0"
-            title="Back"
-            aria-label="Back"
+      <AdminHeader title="New Order" backTo="/admin">
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => switchMode('takeaway')}
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-semibold whitespace-nowrap transition-colors ${
+              mode === 'takeaway' ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
           >
-            <ArrowLeft size={20} />
-          </Link>
-          <h1 className="text-xl font-bold text-gray-900 shrink-0 mr-2">New Order</h1>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => switchMode('takeaway')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-semibold whitespace-nowrap transition-colors ${
-                mode === 'takeaway' ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <ShoppingBag size={13} /> Takeaway
-            </button>
-            <button
-              onClick={() => switchMode('dine-in')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-semibold whitespace-nowrap transition-colors ${
-                mode === 'dine-in' ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <UtensilsCrossed size={13} /> Dine-in
-            </button>
-            <button
-              onClick={() => switchMode('room-service')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-semibold whitespace-nowrap transition-colors ${
-                mode === 'room-service' ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <BedDouble size={13} /> Room Service
-            </button>
-            <button
-              onClick={() => switchMode('delivery')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-semibold whitespace-nowrap transition-colors ${
-                mode === 'delivery' ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <Truck size={13} /> Delivery
-            </button>
-          </div>
-
-          <div className="flex-1 min-w-0" />
-
-          <div className={`relative shrink-0 transition-all duration-200 ${searchOpen ? 'w-64 lg:w-80' : 'w-9'}`}>
-            {searchOpen ? (
-              <>
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                <input
-                  ref={searchRef}
-                  id="new-order-search"
-                  type="search"
-                  value={search}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape' && !search) setSearchOpen(false);
-                  }}
-                  placeholder="Search menu items..."
-                  aria-label="Search menu items"
-                  className="w-full pl-9 pr-9 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg outline-none focus:bg-white focus:ring-1 focus:ring-orange-300 transition-all placeholder:text-gray-400"
-                />
-                <button
-                  onClick={() => search ? clearSearch() : setSearchOpen(false)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded bg-gray-400 hover:bg-gray-500 flex items-center justify-center transition-colors"
-                  title={search ? 'Clear search' : 'Close search'}
-                  aria-label={search ? 'Clear menu item search' : 'Close menu item search'}
-                >
-                  <X size={11} className="text-white" />
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => setSearchOpen(true)}
-                className="w-9 h-9 rounded-lg border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center transition-colors"
-                title="Search menu items"
-                aria-label="Search menu items"
-              >
-                <Search size={16} />
-              </button>
-            )}
-          </div>
-
-          {/* Grid / List toggle */}
-          <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg p-0.5 shrink-0">
-            <button
-              onClick={() => { setView('grid'); localStorage.setItem('qra_neworder_view', 'grid'); }}
-              className={`p-1.5 rounded-md transition-colors ${view === 'grid' ? 'bg-white text-orange-600' : 'text-gray-400 hover:text-gray-600'}`}
-              title="Grid view"
-              aria-label="Show menu as grid"
-            >
-              <LayoutGrid size={15} />
-            </button>
-            <button
-              onClick={() => { setView('list'); localStorage.setItem('qra_neworder_view', 'list'); }}
-              className={`p-1.5 rounded-md transition-colors ${view === 'list' ? 'bg-white text-orange-600' : 'text-gray-400 hover:text-gray-600'}`}
-              title="List view"
-              aria-label="Show menu as list"
-            >
-              <List size={15} />
-            </button>
-          </div>
+            <ShoppingBag size={13} /> Takeaway
+          </button>
+          <button
+            onClick={() => switchMode('dine-in')}
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-semibold whitespace-nowrap transition-colors ${
+              mode === 'dine-in' ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            <UtensilsCrossed size={13} /> Dine-in
+          </button>
+          <button
+            onClick={() => switchMode('room-service')}
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-semibold whitespace-nowrap transition-colors ${
+              mode === 'room-service' ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            <BedDouble size={13} /> Room Service
+          </button>
+          <button
+            onClick={() => switchMode('delivery')}
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-semibold whitespace-nowrap transition-colors ${
+              mode === 'delivery' ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            <Truck size={13} /> Delivery
+          </button>
         </div>
-      </header>
+
+        <div className={`relative shrink-0 transition-all duration-200 ${searchOpen ? 'w-64 lg:w-80' : 'w-9'}`}>
+          {searchOpen ? (
+            <>
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <input
+                ref={searchRef}
+                id="new-order-search"
+                type="search"
+                value={search}
+                onChange={(e) => handleSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape' && !search) setSearchOpen(false);
+                }}
+                placeholder="Search menu items..."
+                aria-label="Search menu items"
+                className="w-full pl-9 pr-9 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg outline-none focus:bg-white focus:ring-1 focus:ring-orange-300 transition-all placeholder:text-gray-400"
+              />
+              <button
+                onClick={() => search ? clearSearch() : setSearchOpen(false)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded bg-gray-400 hover:bg-gray-500 flex items-center justify-center transition-colors"
+                title={search ? 'Clear search' : 'Close search'}
+                aria-label={search ? 'Clear menu item search' : 'Close menu item search'}
+              >
+                <X size={11} className="text-white" />
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="w-9 h-9 rounded-lg border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center transition-colors"
+              title="Search menu items"
+              aria-label="Search menu items"
+            >
+              <Search size={16} />
+            </button>
+          )}
+        </div>
+
+        {/* Grid / List toggle */}
+        <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg p-0.5 shrink-0">
+          <button
+            onClick={() => { setView('grid'); localStorage.setItem('qra_neworder_view', 'grid'); }}
+            className={`p-1.5 rounded-md transition-colors ${view === 'grid' ? 'bg-white text-orange-600' : 'text-gray-400 hover:text-gray-600'}`}
+            title="Grid view"
+            aria-label="Show menu as grid"
+          >
+            <LayoutGrid size={15} />
+          </button>
+          <button
+            onClick={() => { setView('list'); localStorage.setItem('qra_neworder_view', 'list'); }}
+            className={`p-1.5 rounded-md transition-colors ${view === 'list' ? 'bg-white text-orange-600' : 'text-gray-400 hover:text-gray-600'}`}
+            title="List view"
+            aria-label="Show menu as list"
+          >
+            <List size={15} />
+          </button>
+        </div>
+      </AdminHeader>
 
       <div
         className="px-3 sm:px-4 lg:px-6 py-4 pb-28 lg:pb-4 flex flex-col lg:grid gap-4 lg:gap-x-3 items-start"
