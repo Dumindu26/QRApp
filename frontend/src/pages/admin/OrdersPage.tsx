@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { RefreshCw, Plus, Search, X, ClipboardList, UtensilsCrossed, AlertTriangle, ChevronRight } from 'lucide-react';
@@ -56,6 +56,17 @@ export function OrdersPage() {
   const [addItemsOrder, setAddItemsOrder] = useState<Order | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  function clearSearch() {
+    setSearch('');
+    searchRef.current?.focus();
+  }
+
+  useEffect(() => {
+    if (searchOpen) searchRef.current?.focus();
+  }, [searchOpen]);
 
   useOrderSoundAlert(orders);
   const { fmt } = useCurrency();
@@ -185,6 +196,19 @@ export function OrdersPage() {
     if (statusDelta !== 0) return statusDelta;
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
+  const typeTabsWithCounts = TYPE_TABS.map((tt) => {
+    const count =
+      tt.value === 'all'
+        ? orders.filter((o) => o.status !== 'cancelled').length
+        : tt.value === 'dine-in'
+        ? orders.filter((o) => o.orderType !== 'takeaway' && o.orderType !== 'room-service' && o.orderType !== 'delivery' && o.status !== 'cancelled').length
+        : tt.value === 'takeaway'
+        ? orders.filter((o) => o.orderType === 'takeaway' && o.status !== 'cancelled').length
+        : tt.value === 'room-service'
+        ? orders.filter((o) => o.orderType === 'room-service' && o.status !== 'cancelled').length
+        : orders.filter((o) => o.orderType === 'delivery' && o.status !== 'cancelled').length;
+    return { ...tt, count };
+  });
 
   const orderGroups = [
     { key: 'takeaway',     label: 'Takeaway',     dot: 'bg-purple-400', orders: displayed.filter((o) => o.orderType === 'takeaway') },
@@ -304,98 +328,113 @@ export function OrdersPage() {
           <RefreshCw size={18} />
         </button>
       </AdminHeader>
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-30">
-        {/* Level 1 — order type */}
-        <div className="flex items-center gap-2 px-3 sm:px-4 lg:px-6 pt-2">
-          <div className="flex flex-1 gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {TYPE_TABS.map((tt) => {
-              const count =
-                tt.value === 'all'
-                  ? orders.filter((o) => o.status !== 'cancelled').length
-                  : tt.value === 'dine-in'
-                  ? orders.filter((o) => o.orderType !== 'takeaway' && o.orderType !== 'room-service' && o.orderType !== 'delivery' && o.status !== 'cancelled').length
-                  : tt.value === 'takeaway'
-                  ? orders.filter((o) => o.orderType === 'takeaway' && o.status !== 'cancelled').length
-                  : tt.value === 'room-service'
-                  ? orders.filter((o) => o.orderType === 'room-service' && o.status !== 'cancelled').length
-                  : orders.filter((o) => o.orderType === 'delivery' && o.status !== 'cancelled').length;
-              const active = typeTab === tt.value;
-              return (
-                <button
-                  key={tt.value}
-                  onClick={() => setTypeTab(tt.value)}
-                  className={`shrink-0 flex-1 min-w-max px-3 py-2 border-b-2 text-sm font-semibold transition-colors ${
-                    active ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                  }`}
-                >
-                  {tt.label} · <span className="tabular-nums">{count}</span>
-                </button>
-              );
-            })}
-          </div>
+      <div className="flex flex-1 min-h-0 items-start">
+        <aside className="w-[180px] shrink-0 self-stretch border-r border-gray-100 bg-white p-2">
+          <nav className="rounded-lg border border-gray-100 bg-white p-2" aria-label="Order types">
+            <div className="space-y-2">
+              {typeTabsWithCounts.map((tt) => {
+                const active = typeTab === tt.value;
+                return (
+                  <button
+                    key={tt.value}
+                    type="button"
+                    onClick={() => setTypeTab(tt.value)}
+                    className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+                      active
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="truncate">{tt.label}</span>
+                    <span className={`shrink-0 text-xs font-bold tabular-nums ${active ? 'text-green-700' : 'text-gray-400'}`}>{tt.count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
           <Link
             to="/admin/new-order"
             role="button"
-            className="flex items-center gap-1.5 bg-orange-500 text-white px-3 py-2 rounded-lg text-sm font-semibold hover:bg-orange-600 transition-colors shrink-0"
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-800"
           >
             <Plus size={16} /> New
           </Link>
-        </div>
+        </aside>
 
-        {/* Level 2 — order status */}
-        <div className="relative">
-          <div className="flex gap-1 overflow-x-auto py-2 pl-3 sm:pl-4 lg:pl-6 pr-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {STATUS_CHIPS.map((sc) => {
-              const count = sc.value === 'all'
-                ? byType.filter((o) => o.status !== 'cancelled').length
-                : byType.filter((o) => o.status === sc.value).length;
-              const active = statusTab === sc.value;
-              const activeCls =
-                sc.value === 'all'       ? 'bg-gray-900 border-gray-800 text-white'
-                : sc.value === 'pending'   ? 'bg-amber-500 border-amber-500 text-white'
-                : sc.value === 'preparing' ? 'bg-blue-600 border-blue-600 text-white'
-                : sc.value === 'ready'     ? 'bg-green-600 border-green-600 text-white'
-                : sc.value === 'out-for-delivery' ? 'bg-teal-600 border-teal-600 text-white'
-                : sc.value === 'delivered' ? 'bg-emerald-600 border-emerald-600 text-white'
-                :                           'bg-red-600 border-red-600 text-white';
-              const countCls = active
-                ? 'text-white/80'
-                : 'text-gray-800';
-              return (
-                <button
-                  key={sc.value}
-                  onClick={() => setStatusTab(sc.value)}
-                  className={`flex items-center justify-center gap-2 min-w-max h-9 px-3 rounded-lg border shrink-0 transition-colors ${
-                    active ? activeCls : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="text-xs font-semibold leading-none whitespace-nowrap">{sc.label}</span>
-                  <span className={`text-xs font-bold leading-none tabular-nums ${countCls}`}>{count}</span>
-                </button>
-              );
-            })}
+        <div className="flex-1 min-w-0 md:min-h-0 md:flex md:flex-col">
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-30">
+
+        {/* Level 2 — order status + search */}
+        <div className="flex items-center gap-2 px-3 sm:px-4 lg:px-6 py-2">
+          <div className="relative flex-1 min-w-0">
+            <div className="flex gap-1 overflow-x-auto pr-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {STATUS_CHIPS.map((sc) => {
+                const count = sc.value === 'all'
+                  ? byType.filter((o) => o.status !== 'cancelled').length
+                  : byType.filter((o) => o.status === sc.value).length;
+                const active = statusTab === sc.value;
+                const activeCls =
+                  sc.value === 'all'       ? 'bg-gray-900 border-gray-800 text-white'
+                  : sc.value === 'pending'   ? 'bg-amber-500 border-amber-500 text-white'
+                  : sc.value === 'preparing' ? 'bg-blue-600 border-blue-600 text-white'
+                  : sc.value === 'ready'     ? 'bg-green-600 border-green-600 text-white'
+                  : sc.value === 'out-for-delivery' ? 'bg-teal-600 border-teal-600 text-white'
+                  : sc.value === 'delivered' ? 'bg-emerald-600 border-emerald-600 text-white'
+                  :                           'bg-red-600 border-red-600 text-white';
+                const countCls = active
+                  ? 'text-white/80'
+                  : 'text-gray-800';
+                return (
+                  <button
+                    key={sc.value}
+                    onClick={() => setStatusTab(sc.value)}
+                    className={`flex items-center justify-center gap-2 min-w-max h-9 px-3 rounded-lg border shrink-0 transition-colors ${
+                      active ? activeCls : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="text-xs font-semibold leading-none whitespace-nowrap">{sc.label}</span>
+                    <span className={`text-xs font-bold leading-none tabular-nums ${countCls}`}>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-r from-transparent to-white" />
           </div>
-          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-r from-transparent to-white" />
-        </div>
 
-        {/* Search */}
-        <div className="px-3 sm:px-4 lg:px-6 py-2.5">
-          <label htmlFor="orders-search" className="mb-1 block text-xs font-semibold text-gray-500">
-            Search orders
-          </label>
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <input
-              id="orders-search"
-              type="text"
-              placeholder="Search by order no., table, customer…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-orange-300 transition-colors"
-            />
-            {search && (
-              <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" aria-label="Clear order search">
-                <X size={14} />
+          <div className={`relative shrink-0 transition-all duration-200 ${searchOpen ? 'w-56 lg:w-72' : 'w-9'}`}>
+            {searchOpen ? (
+              <>
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <input
+                  ref={searchRef}
+                  id="orders-search"
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape' && !search) setSearchOpen(false);
+                  }}
+                  placeholder="Search by order no., table, customer…"
+                  aria-label="Search orders"
+                  className="w-full pl-9 pr-9 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg outline-none focus:bg-white focus:ring-1 focus:ring-orange-300 transition-all placeholder:text-gray-400"
+                />
+                <button
+                  onClick={() => search ? clearSearch() : setSearchOpen(false)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded bg-gray-400 hover:bg-gray-500 flex items-center justify-center transition-colors"
+                  title={search ? 'Clear search' : 'Close search'}
+                  aria-label={search ? 'Clear order search' : 'Close order search'}
+                >
+                  <X size={11} className="text-white" />
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="w-9 h-9 rounded-lg border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center transition-colors"
+                title="Search orders"
+                aria-label="Search orders"
+              >
+                <Search size={16} />
               </button>
             )}
           </div>
@@ -817,6 +856,8 @@ export function OrdersPage() {
           onDone={handleAddItemsDone}
         />
       )}
+        </div>
+      </div>
       </main>
     </div>
   );

@@ -30,27 +30,37 @@ export function FinancePage() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden mt-14 md:mt-0">
         <AdminHeader title="Finance" backTo="/admin" />
 
-        <div className="bg-white border-b border-gray-100 px-3 sm:px-4 lg:px-6 py-3 flex flex-wrap gap-2 shrink-0">
-          {TABS.map(({ key, label, Icon }) => (
-            <button
-              key={key}
-              onClick={() => switchTab(key)}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
-                tab === key
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              <Icon size={15} />
-              {label}
-            </button>
-          ))}
-        </div>
+        <div className="flex flex-1 min-h-0 items-start">
+          <aside className="w-[180px] shrink-0 self-stretch border-r border-gray-100 bg-white p-2">
+            <nav className="rounded-lg border border-gray-100 bg-white p-2" aria-label="Finance sections">
+              <div className="space-y-2">
+                {TABS.map(({ key, label, Icon }) => {
+                  const active = tab === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => switchTab(key)}
+                      className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+                        active
+                          ? 'border-green-500 bg-green-50 text-green-700'
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Icon size={15} className="shrink-0" />
+                      <span className="truncate">{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
+          </aside>
 
-        <div className="flex-1 overflow-hidden">
-          {tab === 'bills'        && <BillsPage       embedded />}
-          {tab === 'room-charges' && <RoomChargesPage  embedded />}
-          {tab === 'promo-codes'  && <PromoCodesPage   embedded />}
+          <div className="flex-1 min-w-0 overflow-hidden">
+            {tab === 'bills'        && <BillsPage       embedded />}
+            {tab === 'room-charges' && <RoomChargesPage  embedded />}
+            {tab === 'promo-codes'  && <PromoCodesPage   embedded />}
+          </div>
         </div>
       </div>
     </div>

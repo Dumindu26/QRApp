@@ -718,7 +718,7 @@ export function SettingsPage() {
 
   function renderAccountTab() {
     return (
-      <div className="space-y-4 max-w-2xl">
+      <div className="w-full max-w-5xl space-y-3">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           {/* Header */}
           <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
@@ -730,7 +730,7 @@ export function SettingsPage() {
           </div>
 
           <form id="account-form" onSubmit={handleSubmit}>
-            <div className="p-6 space-y-5">
+            <div className="p-4 sm:p-5 space-y-4">
               {error && (
                 <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
                   <X size={14} /> {error}
@@ -764,7 +764,7 @@ export function SettingsPage() {
               </div>
 
               {/* Change password — grouped panel */}
-              <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-4">
+              <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-4 space-y-4">
                 <div className="flex items-center gap-2">
                   <Lock size={13} className="text-gray-400" />
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Change Password</span>
@@ -835,7 +835,7 @@ export function SettingsPage() {
 
   function renderPreferencesTab() {
     return (
-      <div className="space-y-4 max-w-2xl">
+      <div className="grid w-full max-w-5xl grid-cols-1 gap-3 xl:grid-cols-2">
         {/* Navigation Style */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
@@ -847,10 +847,10 @@ export function SettingsPage() {
               <p className="text-xs text-gray-400">Choose how the admin panel is navigated</p>
             </div>
           </div>
-          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="p-4 grid grid-cols-1 gap-3">
             <button
               onClick={() => setNavMode('sidebar')}
-              className={`flex items-start gap-3 p-4 rounded-xl border-2 transition-all text-left ${
+              className={`flex items-start gap-3 p-3 rounded-xl border-2 transition-all text-left ${
                 navMode === 'sidebar'
                   ? 'border-orange-400 bg-orange-50'
                   : 'border-gray-100 hover:border-gray-200'
@@ -866,7 +866,7 @@ export function SettingsPage() {
             </button>
             <button
               onClick={() => setNavMode('launcher')}
-              className={`flex items-start gap-3 p-4 rounded-xl border-2 transition-all text-left ${
+              className={`flex items-start gap-3 p-3 rounded-xl border-2 transition-all text-left ${
                 navMode === 'launcher'
                   ? 'border-orange-400 bg-orange-50'
                   : 'border-gray-100 hover:border-gray-200'
@@ -894,7 +894,7 @@ export function SettingsPage() {
               <p className="text-xs text-gray-400">Switch between light and dark mode</p>
             </div>
           </div>
-          <div className="p-5">
+          <div className="p-4">
             <label className="flex items-center justify-between gap-4 cursor-pointer">
               <span className="text-sm font-medium text-gray-700">
                 {dark ? 'Dark mode' : 'Light mode'}
@@ -919,7 +919,7 @@ export function SettingsPage() {
   function renderRestaurantTab() {
     if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>;
     return (
-      <div className="space-y-4 max-w-2xl">
+      <div className="grid w-full max-w-5xl grid-cols-1 gap-3 xl:grid-cols-2">
 
         {/* Restaurant Profile */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -932,7 +932,7 @@ export function SettingsPage() {
               <p className="text-xs text-gray-400">The name &amp; logo customers see</p>
             </div>
           </div>
-          <div className="p-5 flex items-start gap-4">
+          <div className="p-4 flex items-start gap-4">
             {/* Logo */}
             <label className="relative cursor-pointer group flex-shrink-0">
               <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center">
@@ -984,7 +984,7 @@ export function SettingsPage() {
             </div>
           </div>
 
-          <div className="p-5 space-y-4">
+          <div className="p-4 space-y-4">
             {billingSuccess && (
               <div className="bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
                 <CheckCircle2 size={14} /> Billing settings saved!
@@ -1078,7 +1078,7 @@ export function SettingsPage() {
               <p className="text-xs text-gray-400">Currencies customers can switch between on menu pages</p>
             </div>
           </div>
-          <div className="p-5 space-y-4">
+          <div className="p-4 space-y-4">
 
             {/* Configured currencies list */}
             <div className="space-y-2">
@@ -1202,7 +1202,7 @@ export function SettingsPage() {
             </div>
           </div>
 
-          <div className="p-5 space-y-4">
+          <div className="p-4 space-y-4">
             <Field label="Prefix (letters / numbers only)">
               <input
                 type="text"
@@ -1241,7 +1241,7 @@ export function SettingsPage() {
               <p className="text-xs text-gray-400">Which options show on the “How was this paid?” screen</p>
             </div>
           </div>
-          <div className="p-5 space-y-2">
+          <div className="p-4 space-y-2">
             {PAYMENT_METHODS.map((m) => {
               const on = payMethods.includes(m.value);
               const isLast = on && payMethods.length === 1;
@@ -1285,7 +1285,7 @@ export function SettingsPage() {
   function renderReceiptTab() {
     if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>;
     return (
-      <div className="space-y-4 max-w-2xl">
+      <div className="w-full max-w-5xl space-y-3">
         {/* Receipt Layout */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
@@ -1298,86 +1298,89 @@ export function SettingsPage() {
             </div>
           </div>
 
-          <div className="p-5 space-y-5">
-            {/* Header lines */}
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Header (below restaurant name)</p>
-              <div className="space-y-2">
-                <Field label="Line 1 — address or tagline">
-                  <input
-                    type="text" maxLength={100}
-                    value={receiptHeaderLine1}
-                    onChange={(e) => { setReceiptHeaderLine1(e.target.value); markDirty('receipt'); }}
-                    placeholder="e.g. 123 High Street, London"
-                    className={input}
-                  />
-                </Field>
-                <Field label="Line 2 — phone / website">
-                  <input
-                    type="text" maxLength={100}
-                    value={receiptHeaderLine2}
-                    onChange={(e) => { setReceiptHeaderLine2(e.target.value); markDirty('receipt'); }}
-                    placeholder="e.g. Tel: +44 20 1234 5678 · www.myrest.com"
-                    className={input}
-                  />
-                </Field>
+          <div className="grid gap-5 p-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+            <div className="space-y-5">
+              {/* Header lines */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Header (below restaurant name)</p>
+                <div className="space-y-2">
+                  <Field label="Line 1 — address or tagline">
+                    <input
+                      type="text" maxLength={100}
+                      value={receiptHeaderLine1}
+                      onChange={(e) => { setReceiptHeaderLine1(e.target.value); markDirty('receipt'); }}
+                      placeholder="e.g. 123 High Street, London"
+                      className={input}
+                    />
+                  </Field>
+                  <Field label="Line 2 — phone / website">
+                    <input
+                      type="text" maxLength={100}
+                      value={receiptHeaderLine2}
+                      onChange={(e) => { setReceiptHeaderLine2(e.target.value); markDirty('receipt'); }}
+                      placeholder="e.g. Tel: +44 20 1234 5678 · www.myrest.com"
+                      className={input}
+                    />
+                  </Field>
+                </div>
+              </div>
+
+              {/* Footer lines */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Footer message</p>
+                <div className="space-y-2">
+                  <Field label="Line 1">
+                    <input
+                      type="text" maxLength={100}
+                      value={receiptFooterLine1}
+                      onChange={(e) => { setReceiptFooterLine1(e.target.value); markDirty('receipt'); }}
+                      placeholder="Thank you for dining with us!"
+                      className={input}
+                    />
+                  </Field>
+                  <Field label="Line 2">
+                    <input
+                      type="text" maxLength={100}
+                      value={receiptFooterLine2}
+                      onChange={(e) => { setReceiptFooterLine2(e.target.value); markDirty('receipt'); }}
+                      placeholder="Please come again 🙏"
+                      className={input}
+                    />
+                  </Field>
+                </div>
               </div>
             </div>
 
-            {/* Footer lines */}
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Footer message</p>
-              <div className="space-y-2">
-                <Field label="Line 1">
-                  <input
-                    type="text" maxLength={100}
-                    value={receiptFooterLine1}
-                    onChange={(e) => { setReceiptFooterLine1(e.target.value); markDirty('receipt'); }}
-                    placeholder="Thank you for dining with us!"
-                    className={input}
-                  />
-                </Field>
-                <Field label="Line 2">
-                  <input
-                    type="text" maxLength={100}
-                    value={receiptFooterLine2}
-                    onChange={(e) => { setReceiptFooterLine2(e.target.value); markDirty('receipt'); }}
-                    placeholder="Please come again 🙏"
-                    className={input}
-                  />
-                </Field>
+            <div className="space-y-5 lg:border-l lg:border-gray-100 lg:pl-5">
+              {/* Layout toggles */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Print options</p>
+                <div className="space-y-2">
+                  {[
+                    { label: 'Show order number', sub: 'Prints the ORD-XXXX reference on the receipt', value: receiptShowOrderNo, set: setReceiptShowOrderNo },
+                    { label: 'Show unit price per line', sub: 'Prints "× $12.00 each" below each item', value: receiptShowUnitPrice, set: setReceiptShowUnitPrice },
+                  ].map(({ label, sub, value, set }) => (
+                    <label key={label} className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-colors ${value ? 'bg-indigo-50 border-indigo-200' : 'bg-gray-50 border-gray-200'}`}>
+                      <div
+                        onClick={() => { set(!value); markDirty('receipt'); }}
+                        className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${value ? 'bg-indigo-500' : 'bg-gray-300'}`}
+                      >
+                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${value ? 'translate-x-4' : ''}`} />
+                      </div>
+                      <div>
+                        <p className={`text-sm font-semibold ${value ? 'text-indigo-700' : 'text-gray-600'}`}>{label}</p>
+                        <p className="text-xs text-gray-400">{sub}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* Layout toggles */}
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Print options</p>
-              <div className="space-y-2">
-                {[
-                  { label: 'Show order number', sub: 'Prints the ORD-XXXX reference on the receipt', value: receiptShowOrderNo, set: setReceiptShowOrderNo },
-                  { label: 'Show unit price per line', sub: 'Prints "× $12.00 each" below each item', value: receiptShowUnitPrice, set: setReceiptShowUnitPrice },
-                ].map(({ label, sub, value, set }) => (
-                  <label key={label} className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-colors ${value ? 'bg-indigo-50 border-indigo-200' : 'bg-gray-50 border-gray-200'}`}>
-                    <div
-                      onClick={() => { set(!value); markDirty('receipt'); }}
-                      className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${value ? 'bg-indigo-500' : 'bg-gray-300'}`}
-                    >
-                      <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${value ? 'translate-x-4' : ''}`} />
-                    </div>
-                    <div>
-                      <p className={`text-sm font-semibold ${value ? 'text-indigo-700' : 'text-gray-600'}`}>{label}</p>
-                      <p className="text-xs text-gray-400">{sub}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Live mini receipt preview */}
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Live preview</p>
-              <div className="flex justify-center">
-                <div className="font-mono text-[10px] bg-white border border-gray-300 rounded-lg p-4 w-[210px] leading-relaxed text-gray-800 shadow-sm select-none">
+              {/* Live mini receipt preview */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Live preview</p>
+                <div className="flex justify-center">
+                  <div className="font-mono text-[10px] bg-white border border-gray-300 rounded-lg p-4 w-[210px] leading-relaxed text-gray-800 shadow-sm select-none">
                   {restaurant?.logo && (
                     <div className="flex justify-center mb-1">
                       <img src={restaurant.logo} alt="logo" className="w-8 h-8 object-contain" />
@@ -1402,6 +1405,7 @@ export function SettingsPage() {
                   <p className="text-gray-400 my-0.5">{'─'.repeat(26)}</p>
                   <p className="text-center text-[9px]">{receiptFooterLine1 || 'Thank you for dining with us!'}</p>
                   {receiptFooterLine2 && <p className="text-center text-gray-400 text-[8px]">{receiptFooterLine2}</p>}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1414,7 +1418,7 @@ export function SettingsPage() {
   function renderOperationsTab() {
     if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>;
     return (
-      <div className="space-y-4 max-w-2xl">
+      <div className="grid w-full max-w-5xl grid-cols-1 gap-3 xl:grid-cols-3">
 
         {/* Timezone */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -1427,7 +1431,7 @@ export function SettingsPage() {
               <p className="text-xs text-gray-400">Used for reservations &amp; date-based reports</p>
             </div>
           </div>
-          <div className="p-5">
+          <div className="p-4">
             <select
               value={timezone}
               onChange={(e) => { setTimezone(e.target.value); markDirty('operations'); }}
@@ -1454,7 +1458,7 @@ export function SettingsPage() {
             </div>
           </div>
 
-          <div className="p-5 space-y-3">
+          <div className="p-4 space-y-3">
             <div className="flex flex-wrap gap-2">
               {[null, 10, 15, 20, 25, 30, 45, 60].map((val) => (
                 <button
@@ -1509,7 +1513,7 @@ export function SettingsPage() {
             {rsSaving && <Loader2 size={14} className="animate-spin text-gray-400" />}
           </div>
 
-          <div className="p-5 space-y-4">
+          <div className="p-4 space-y-4">
             <label className="flex items-center gap-3 cursor-pointer">
               <div
                 onClick={() => { setRsEnabled((p) => !p); markDirty('operations'); }}
@@ -1570,9 +1574,9 @@ export function SettingsPage() {
     ];
 
     return (
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
+      <div className="grid w-full max-w-6xl grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px] items-start">
         {/* ── Form column ── */}
-        <div className="space-y-4 max-w-2xl">
+        <div className="space-y-3">
           {/* Welcome screen content */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
@@ -1585,7 +1589,7 @@ export function SettingsPage() {
               </div>
               {socialSaving && <Loader2 size={14} className="animate-spin text-gray-400" />}
             </div>
-            <div className="p-5 space-y-4">
+            <div className="p-4 space-y-4">
               {/* Hero / background image */}
               <Field label="Background Image">
                 <div className="flex items-start gap-3">
@@ -1659,7 +1663,7 @@ export function SettingsPage() {
                 <p className="text-xs text-gray-400">Icons shown on the welcome screen — leave blank to hide</p>
               </div>
             </div>
-            <div className="p-5 space-y-4">
+            <div className="p-4 grid grid-cols-1 gap-3 md:grid-cols-2">
               {socialFields.map((f) => (
                 <Field key={f.label} label={f.label}>
                   <input
@@ -1710,7 +1714,7 @@ export function SettingsPage() {
   function renderLoginTab() {
     if (!restaurant) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>;
     return (
-      <div className="space-y-4 max-w-2xl">
+      <div className="w-full max-w-5xl space-y-3">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50">
             <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
@@ -1722,7 +1726,7 @@ export function SettingsPage() {
             </div>
             {loginUploading && <Loader2 size={14} className="animate-spin text-gray-400" />}
           </div>
-          <div className="p-5 space-y-4">
+          <div className="p-4 space-y-4">
             {/* Branded login link */}
             <div className="bg-gray-50 rounded-xl px-4 py-3">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Your login link</p>
@@ -1786,8 +1790,8 @@ export function SettingsPage() {
 
   function renderPrintersTab() {
     return (
-      <div className="space-y-4 max-w-2xl">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
+      <div className="w-full max-w-5xl space-y-3">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
               <Printer size={17} className="text-orange-500" />
@@ -1824,6 +1828,7 @@ export function SettingsPage() {
           </div>
 
           {/* Receipt printer */}
+          <div className="grid gap-3 lg:grid-cols-2">
           <div className="border border-gray-100 rounded-xl p-4 space-y-3">
             <p className="text-sm font-semibold text-gray-700">Receipt Printer</p>
             <div className="flex gap-2">
@@ -1878,6 +1883,7 @@ export function SettingsPage() {
               Test Print
             </button>
           </div>
+          </div>
 
           {/* Auto-print toggles */}
           <div className="space-y-3">
@@ -1925,8 +1931,8 @@ export function SettingsPage() {
 
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0 flex flex-col">
         <AdminHeader title="Settings" subtitle="Manage your restaurant configuration" />
-        <div className="w-full px-4 sm:px-6 py-6 flex-1">
-          <div className="flex flex-col lg:flex-row gap-5 items-start">
+        <div className="w-full px-3 sm:px-5 py-4 flex-1">
+          <div className="flex flex-col lg:flex-row gap-4 items-start">
             {/* ── Settings menu ───────────────────────────────────────────── */}
             <nav className="w-full lg:w-56 lg:sticky lg:top-6 lg:flex-shrink-0" aria-label="Settings sections">
               <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0">
@@ -1979,9 +1985,9 @@ export function SettingsPage() {
               </div>
             </nav>
 
-            <div className="w-full min-w-0 space-y-4">
+            <div className="w-full max-w-6xl min-w-0 space-y-3">
               {activeTab === 'account' && (
-                <div className="relative overflow-hidden bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-6 text-white shadow-lg shadow-orange-200">
+                <div className="relative overflow-hidden bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-5 text-white shadow-md shadow-orange-100">
                   {/* Optional banner background image */}
                   {restaurant?.bannerImage && (
                     <>
@@ -2046,7 +2052,7 @@ export function SettingsPage() {
                 </div>
               )}
 
-              <div className={`rounded-2xl border px-4 py-3 ${toneClass[activeSummary.tone]}`}>
+              <div className={`rounded-xl border px-4 py-2.5 ${toneClass[activeSummary.tone]}`}>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                   <div>
                     <p className="text-sm font-semibold">{activeSummary.label}</p>
