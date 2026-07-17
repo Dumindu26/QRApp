@@ -6,7 +6,7 @@ import {
   LayoutDashboard, ShoppingCart, UtensilsCrossed,
   QrCode, MapPin, MonitorPlay, ChefHat, ImagePlus,
   Receipt, Users, Warehouse, BarChart2,
-  Settings, Star, ArrowLeft, CreditCard, MessageSquarePlus,
+  Settings, Star, CreditCard, MessageSquarePlus,
   ClipboardList, BriefcaseBusiness, SlidersHorizontal,
 } from 'lucide-react';
 
@@ -107,19 +107,12 @@ export function LauncherPage() {
     <div className="flex h-screen bg-gray-50">
       <AdminSidebar />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <AdminHeader title="Launcher" />
+        <AdminHeader title={activeGroup ? activeGroup.label : 'Launcher'} onBack={activeGroup ? () => setActiveGroup(null) : undefined} />
         <main className="flex-1 overflow-y-auto p-6 flex flex-col">
 
           {activeGroup ? (
             <>
               {/* Sub-group view */}
-              <button
-                onClick={() => setActiveGroup(null)}
-                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-5 transition-colors"
-              >
-                <ArrowLeft size={15} /> Back
-              </button>
-              <h2 className="text-lg font-bold text-gray-800 mb-4">{activeGroup.label}</h2>
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
                 {activeGroup.children.map((child) => (
                   <Tile key={child.to} {...child} />

@@ -12,11 +12,12 @@ interface AdminHeaderProps {
   title: string;
   subtitle?: string;
   backTo?: string;
+  onBack?: () => void;
   icon?: React.ElementType;
   children?: React.ReactNode;
 }
 
-export function AdminHeader({ title, subtitle, backTo, icon: Icon, children }: AdminHeaderProps) {
+export function AdminHeader({ title, subtitle, backTo, onBack, icon: Icon, children }: AdminHeaderProps) {
   const { user, logout } = useAuth();
   const { dark, toggleDark } = useTheme();
   const { navMode } = useNavMode();
@@ -55,7 +56,17 @@ export function AdminHeader({ title, subtitle, backTo, icon: Icon, children }: A
             <House size={20} />
           </Link>
         )}
-        {backTo && (
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="min-h-10 min-w-10 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50 shrink-0"
+            title="Back"
+            aria-label="Back"
+          >
+            <ArrowLeft size={20} />
+          </button>
+        ) : backTo && (
           <Link
             to={backTo}
             className="min-h-10 min-w-10 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50 shrink-0"
