@@ -453,7 +453,7 @@ export function LocationsPage() {
       </div>
 
       {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <AdminHeader title="Locations & QR Codes" backTo="/admin" />
+      <AdminHeader title="Locations & QR Codes" backTo="/admin?group=menu-qr" />
 
       <div className="flex items-start">
         <aside className="w-[216px] shrink-0 self-stretch border-r border-gray-100 bg-white p-3">

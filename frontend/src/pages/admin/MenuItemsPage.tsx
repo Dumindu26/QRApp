@@ -489,7 +489,7 @@ export function MenuItemsPage() {
       {modal}
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
-      <AdminHeader title="Menu" backTo="/admin" />
+      <AdminHeader title="Menu" backTo="/admin?group=menu-qr" />
 
       <div className="bg-white border-b border-gray-100 px-3 sm:px-4 lg:px-6 py-2 flex items-center gap-2">
         <nav className="flex flex-1 gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Menu sections">

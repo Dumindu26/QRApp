@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
 import {
@@ -11,13 +11,14 @@ import {
 } from 'lucide-react';
 
 type NavLeaf = { label: string; icon: React.ElementType; to: string; color: string };
-type NavGroup = { label: string; icon: React.ElementType; color: string; children: NavLeaf[] };
+type NavGroup = { id: string; label: string; icon: React.ElementType; color: string; children: NavLeaf[] };
 type NavEntry = ({ type: 'item' } & NavLeaf) | ({ type: 'group' } & NavGroup);
 
 const TOP_NAV: NavEntry[] = [
   { type: 'item', label: 'Orders', icon: ShoppingCart, to: '/admin/orders', color: 'bg-orange-50 text-orange-600' },
   {
     type: 'group',
+    id: 'service',
     label: 'Service',
     icon: ClipboardList,
     color: 'bg-orange-50 text-orange-600',
@@ -30,6 +31,7 @@ const TOP_NAV: NavEntry[] = [
   },
   {
     type: 'group',
+    id: 'menu-qr',
     label: 'Menu & QR',
     icon: QrCode,
     color: 'bg-green-50 text-green-600',
@@ -41,6 +43,7 @@ const TOP_NAV: NavEntry[] = [
   },
   {
     type: 'group',
+    id: 'operations',
     label: 'Operations',
     icon: Warehouse,
     color: 'bg-amber-50 text-amber-600',
@@ -51,6 +54,7 @@ const TOP_NAV: NavEntry[] = [
   },
   {
     type: 'group',
+    id: 'business',
     label: 'Business',
     icon: BriefcaseBusiness,
     color: 'bg-teal-50 text-teal-600',
@@ -63,6 +67,7 @@ const TOP_NAV: NavEntry[] = [
   },
   {
     type: 'group',
+    id: 'setup',
     label: 'Setup',
     icon: SlidersHorizontal,
     color: 'bg-gray-100 text-gray-600',
@@ -72,6 +77,12 @@ const TOP_NAV: NavEntry[] = [
     ],
   },
 ];
+
+function findGroup(id: string | null): NavGroup | null {
+  if (!id) return null;
+  const entry = TOP_NAV.find((e) => e.type === 'group' && e.id === id);
+  return entry && entry.type === 'group' ? entry : null;
+}
 
 function Tile({ label, icon: Icon, color, onClick, to }: {
   label: string; icon: React.ElementType; color: string;
@@ -101,13 +112,27 @@ function Tile({ label, icon: Icon, color, onClick, to }: {
 }
 
 export function LauncherPage() {
-  const [activeGroup, setActiveGroup] = useState<NavGroup | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeGroup, setActiveGroup] = useState<NavGroup | null>(() => findGroup(searchParams.get('group')));
+
+  useEffect(() => {
+    setActiveGroup(findGroup(searchParams.get('group')));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.get('group')]);
+
+  function closeGroup() {
+    setActiveGroup(null);
+    setSearchParams((prev) => {
+      prev.delete('group');
+      return prev;
+    }, { replace: true });
+  }
 
   return (
     <div className="flex h-screen bg-gray-50">
       <AdminSidebar />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <AdminHeader title={activeGroup ? activeGroup.label : 'Launcher'} onBack={activeGroup ? () => setActiveGroup(null) : undefined} />
+        <AdminHeader title={activeGroup ? activeGroup.label : 'Launcher'} onBack={activeGroup ? closeGroup : undefined} />
         <main className="flex-1 overflow-y-auto p-6 flex flex-col">
 
           {activeGroup ? (

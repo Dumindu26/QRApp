@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   ShoppingBag, TrendingUp, TrendingDown, XCircle, Banknote,
   Star, Clock, Receipt, CheckCircle2,
@@ -52,6 +52,10 @@ const STATUS_CFG: Record<string, { label: string; dot: string }> = {
 export function DashboardPage() {
   const { user } = useAuth();
   const { fmt }  = useCurrency();
+  const location = useLocation();
+  // Reached at /admin as the sidebar-mode home (no back target) or at
+  // /admin/dashboard from the launcher's Service group (back goes there).
+  const dashboardBackTo = location.pathname === '/admin/dashboard' ? '/admin?group=service' : undefined;
 
   const [orders,     setOrders]     = useState<Order[]>([]);
   const [loaded,     setLoaded]     = useState(false);
@@ -375,7 +379,7 @@ export function DashboardPage() {
       <div className="flex-1 overflow-y-auto mt-14 md:mt-0 flex flex-col">
 
         {/* Header */}
-        <AdminHeader title="Overview" subtitle={`${greeting}, ${user?.name ?? 'Restaurant Admin'}`}>
+        <AdminHeader title="Overview" subtitle={`${greeting}, ${user?.name ?? 'Restaurant Admin'}`} backTo={dashboardBackTo}>
           <div className="text-right hidden sm:block shrink-0 mr-1">
             <p className="text-sm font-bold text-gray-900 tabular-nums leading-tight">
               {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}

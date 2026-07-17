@@ -28,7 +28,7 @@ export function FloorPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden mt-14 md:mt-0">
-        <AdminHeader title="Floor" backTo="/admin" />
+        <AdminHeader title="Floor" backTo="/admin?group=service" />
 
         <div className="flex-1 min-h-0 flex items-start overflow-hidden">
           <aside className="w-[216px] shrink-0 self-stretch border-r border-gray-100 bg-white p-3">

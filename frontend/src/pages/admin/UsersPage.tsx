@@ -165,7 +165,7 @@ export function UsersPage() {
       {modal}
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
-      <AdminHeader title="Manage Staff" backTo="/admin" />
+      <AdminHeader title="Manage Staff" backTo="/admin?group=operations" />
 
       {/* Tab bar (pill style) — with the Add User button on the same row */}
       <div className="bg-white shadow-sm px-3 sm:px-4 lg:px-6 pt-3 pb-3 flex items-center gap-2">

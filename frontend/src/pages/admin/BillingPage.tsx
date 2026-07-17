@@ -48,7 +48,7 @@ export function BillingPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
-        <AdminHeader title="Subscription & Billing" backTo="/admin" />
+        <AdminHeader title="Subscription & Billing" backTo="/admin?group=setup" />
 
         <div className="px-3 sm:px-4 lg:px-6 py-4 space-y-4 max-w-5xl">
           {!enabled ? (

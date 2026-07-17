@@ -381,7 +381,7 @@ export function StockPage() {
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
 
         {/* Header */}
-        <AdminHeader title="Stock Management" subtitle="Track ingredients and supplies" backTo="/admin" icon={Package}>
+        <AdminHeader title="Stock Management" subtitle="Track ingredients and supplies" backTo="/admin?group=operations" icon={Package}>
           <button
             onClick={() => setShowAdd(true)}
             className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-xl text-sm font-semibold hover:bg-orange-600 transition-colors active:scale-95 shrink-0"

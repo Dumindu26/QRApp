@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { lazy, Suspense, useEffect, useRef } from 'react';
 import { BrandLoader } from './components/BrandLoader';
 import { Toaster } from 'react-hot-toast';
@@ -191,7 +191,11 @@ function RootRedirect() {
 
 function AdminHome() {
   const { navMode } = useNavMode();
-  if (navMode === 'launcher') return <Navigate to="/admin/launcher" replace />;
+  const [searchParams] = useSearchParams();
+  if (navMode === 'launcher') {
+    const group = searchParams.get('group');
+    return <Navigate to={group ? `/admin/launcher?group=${group}` : '/admin/launcher'} replace />;
+  }
   return <DashboardPage />;
 }
 

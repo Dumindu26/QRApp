@@ -28,7 +28,7 @@ export function FinancePage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden mt-14 md:mt-0">
-        <AdminHeader title="Finance" backTo="/admin" />
+        <AdminHeader title="Finance" backTo="/admin?group=business" />
 
         <div className="flex flex-1 min-h-0 items-start">
           <aside className="w-[180px] shrink-0 self-stretch border-r border-gray-100 bg-white p-2">

@@ -246,7 +246,7 @@ export function PromoScreensPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-        <AdminHeader title="Promo Screens" subtitle="Manage banners for TVs and display screens" backTo="/admin" icon={MonitorPlay} />
+        <AdminHeader title="Promo Screens" subtitle="Manage banners for TVs and display screens" backTo="/admin?group=menu-qr" icon={MonitorPlay} />
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           <div className="grid gap-5 xl:grid-cols-[360px_1fr]">

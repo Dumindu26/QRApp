@@ -57,7 +57,7 @@ export function FeedbackPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <AdminHeader title="Feedback" subtitle="Request a feature or report a bug to the dev team" backTo="/admin" icon={MessageSquarePlus} />
+        <AdminHeader title="Feedback" subtitle="Request a feature or report a bug to the dev team" backTo="/admin?group=business" icon={MessageSquarePlus} />
         <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
           <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-6">
 

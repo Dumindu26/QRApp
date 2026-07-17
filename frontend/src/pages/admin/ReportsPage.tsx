@@ -1737,7 +1737,7 @@ export function ReportsPage() {
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
-        <AdminHeader title="Reports" backTo="/admin" icon={BarChart2} />
+        <AdminHeader title="Reports" backTo="/admin?group=business" icon={BarChart2} />
 
         <div className="flex items-start">
           <aside className="w-[216px] shrink-0 self-stretch border-r border-gray-100 bg-white p-3">
