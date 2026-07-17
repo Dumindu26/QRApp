@@ -489,7 +489,13 @@ export function MenuItemsPage() {
       {modal}
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
-      <AdminHeader title="Menu" backTo="/admin?group=menu-qr" />
+      <AdminHeader title="Menu" backTo="/admin?group=menu-qr">
+        {activeTab === 'items' && (
+          <button onClick={openNew} className="flex min-h-10 items-center gap-1 rounded-lg bg-green-700 px-3 text-sm font-semibold text-white transition-colors hover:bg-green-800 whitespace-nowrap shrink-0">
+            <Plus size={14} /> Add Item
+          </button>
+        )}
+      </AdminHeader>
 
       <div className="bg-white border-b border-gray-100 px-3 sm:px-4 lg:px-6 py-2 flex items-center gap-2">
         <nav className="flex flex-1 gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Menu sections">
@@ -543,9 +549,6 @@ export function MenuItemsPage() {
               {importing ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
             </button>
             <input ref={importRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
-            <button onClick={openNew} className="flex min-h-10 items-center gap-1 rounded-lg bg-green-700 px-3 text-sm font-semibold text-white transition-colors hover:bg-green-800 whitespace-nowrap">
-              <Plus size={14} /> Add Item
-            </button>
           </div>
         )}
       </div>

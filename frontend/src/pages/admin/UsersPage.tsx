@@ -165,9 +165,18 @@ export function UsersPage() {
       {modal}
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
-      <AdminHeader title="Manage Staff" backTo="/admin?group=operations" />
+      <AdminHeader title="Manage Staff" backTo="/admin?group=operations">
+        {tab === 'users' && (
+          <button
+            onClick={() => openNew(filterRole ?? undefined)}
+            className="shrink-0 flex items-center gap-1.5 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors whitespace-nowrap"
+          >
+            <Plus size={14} /> Add {filterRole ? ROLE_CONFIG.find(r => r.role === filterRole)?.label : 'User'}
+          </button>
+        )}
+      </AdminHeader>
 
-      {/* Tab bar (pill style) — with the Add User button on the same row */}
+      {/* Tab bar (pill style) */}
       <div className="bg-white shadow-sm px-3 sm:px-4 lg:px-6 pt-3 pb-3 flex items-center gap-2">
         <div className="flex gap-2 overflow-x-auto">
           {STAFF_TABS.map(({ id, label, Icon }) => {
@@ -188,15 +197,6 @@ export function UsersPage() {
             );
           })}
         </div>
-
-        {tab === 'users' && (
-          <button
-            onClick={() => openNew(filterRole ?? undefined)}
-            className="ml-auto shrink-0 flex items-center gap-1.5 bg-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition-colors whitespace-nowrap"
-          >
-            <Plus size={14} /> Add {filterRole ? ROLE_CONFIG.find(r => r.role === filterRole)?.label : 'User'}
-          </button>
-        )}
       </div>
 
       {tab === 'performance' && <StaffPerformancePanel />}

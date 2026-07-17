@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useConfirm } from '../../components/ConfirmModal';
 import {
@@ -40,8 +40,13 @@ function flagsToDays(flags: boolean[]): string {
 
 const EMPTY: ScheduleInput = { name: '', days: 'daily', startTime: '08:00', endTime: '17:00', active: true };
 
+export interface MenuSchedulesPanelHandle {
+  openAdd: () => void;
+}
+
 // ── Standalone panel (used inside the tabbed Menu page) ─────────────────────
-export function MenuSchedulesPanel() {
+export const MenuSchedulesPanel = forwardRef<MenuSchedulesPanelHandle, { hideOwnButton?: boolean }>(
+  function MenuSchedulesPanel({ hideOwnButton }, ref) {
   const { confirm, modal } = useConfirm();
   const [schedules, setSchedules] = useState<MenuSchedule[]>([]);
   const [loading,   setLoading]   = useState(true);
@@ -73,6 +78,8 @@ export function MenuSchedulesPanel() {
     setDayFlags(daysToFlags(EMPTY.days));
     setShowModal(true);
   }
+
+  useImperativeHandle(ref, () => ({ openAdd }));
 
   function openEdit(s: MenuSchedule) {
     setEditing(s);
@@ -156,10 +163,12 @@ export function MenuSchedulesPanel() {
       {/* Toolbar */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-500 italic">Control when items appear on the customer menu.</p>
-        <button onClick={openAdd}
-          className="flex items-center gap-1.5 bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-orange-600 transition-colors">
-          <Plus size={16} /> New Schedule
-        </button>
+        {!hideOwnButton && (
+          <button onClick={openAdd}
+            className="flex items-center gap-1.5 bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-orange-600 transition-colors">
+            <Plus size={16} /> New Schedule
+          </button>
+        )}
       </div>
 
       {/* Info banner */}
@@ -307,16 +316,24 @@ export function MenuSchedulesPanel() {
       )}
     </div>
   );
-}
+});
 
 // ── Full standalone page ────────────────────────────────────────────────────
 export function MenuSchedulesPage() {
+  const panelRef = useRef<MenuSchedulesPanelHandle>(null);
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0">
-        <AdminHeader title="Menu Schedules" subtitle="Control when items appear on the customer menu" backTo="/admin/menu" />
-        <MenuSchedulesPanel />
+        <AdminHeader title="Menu Schedules" subtitle="Control when items appear on the customer menu" backTo="/admin/menu">
+          <button
+            onClick={() => panelRef.current?.openAdd()}
+            className="flex items-center gap-1.5 bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-orange-600 transition-colors shrink-0"
+          >
+            <Plus size={16} /> New Schedule
+          </button>
+        </AdminHeader>
+        <MenuSchedulesPanel ref={panelRef} hideOwnButton />
       </main>
     </div>
   );
