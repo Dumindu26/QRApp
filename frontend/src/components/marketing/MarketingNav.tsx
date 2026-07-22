@@ -38,7 +38,6 @@ export function MarketingNav({
           )}
           <div className="flex items-center gap-1 sm:gap-2 text-sm font-medium shrink-0 whitespace-nowrap">
             {themeSwitcher}
-            <Link to="/pricing" className={`hidden sm:inline-block px-3 py-2 ${dark ? 'text-emerald-100/80 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>Pricing</Link>
             <button onClick={() => setDemoOpen(true)} className={`hidden lg:inline-block px-3 py-2 ${dark ? 'text-emerald-100/80 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>Request a demo</button>
             <Link to="/login" className={`hidden sm:inline-block px-3 py-2 ${dark ? 'text-emerald-100/80 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>Log in</Link>
             <Link to="/signup" className={`px-4 py-2 rounded-full text-white transition-colors ${dark ? 'bg-emerald-500 hover:bg-emerald-400' : 'bg-orange-500 hover:bg-orange-600'}`}>Start free</Link>
@@ -59,7 +58,6 @@ export function MarketingFooter({ variant = 'light' }: { variant?: 'light' | 'da
       <div className={`max-w-6xl mx-auto px-5 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm ${dark ? 'text-emerald-100/50' : 'text-gray-400'}`}>
         <span>© {new Date().getFullYear()} Order Live · QR ordering &amp; POS for restaurants · orderlive.online</span>
         <div className="flex gap-4">
-          <Link to="/pricing" className={dark ? 'hover:text-emerald-200' : 'hover:text-gray-600'}>Pricing</Link>
           <Link to="/login" className={dark ? 'hover:text-emerald-200' : 'hover:text-gray-600'}>Log in</Link>
           <Link to="/signup" className={dark ? 'hover:text-emerald-200' : 'hover:text-gray-600'}>Sign up</Link>
         </div>

@@ -19,6 +19,7 @@ import { offlineQueue } from './services/offlineQueue';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { stockService } from './services/stockService';
 import { trackPageView } from './services/analytics';
+import { SeoManager } from './components/SeoManager';
 
 // Customer pages — small, load eagerly (on critical render path)
 import { LoginPage } from './pages/LoginPage';
@@ -35,7 +36,6 @@ import { OrderBillPage } from './pages/customer/OrderBillPage';
 
 // Marketing pages
 const LandingPage          = lazy(() => import('./pages/marketing/LandingPage').then(m => ({ default: m.LandingPage })));
-const PricingPage          = lazy(() => import('./pages/marketing/PricingPage').then(m => ({ default: m.PricingPage })));
 const SignupPage           = lazy(() => import('./pages/marketing/SignupPage').then(m => ({ default: m.SignupPage })));
 const MockCheckoutPage     = lazy(() => import('./pages/marketing/MockCheckoutPage').then(m => ({ default: m.MockCheckoutPage })));
 
@@ -214,6 +214,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AnalyticsTracker />
+      <SeoManager />
       <AuthProvider>
         <SubscriptionConfigProvider>
         <CurrencyProvider>
@@ -237,7 +238,7 @@ export default function App() {
             {/* Auth */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/login/:slug" element={<LoginPage />} />
-            <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/pricing" element={<Navigate to="/" replace />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/billing/mock-checkout" element={<MockCheckoutPage />} />
 

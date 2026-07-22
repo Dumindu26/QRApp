@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+Allow: /signup
+Allow: /takeaway/
+Allow: /delivery/
+Disallow: /admin
+Disallow: /login
+Disallow: /pricing
+Disallow: /billing
+Disallow: /kitchen
+Disallow: /receipt
+Disallow: /session-receipt
+Disallow: /welcome
+Disallow: /menu
+Disallow: /cart
+Disallow: /order
+Disallow: /bill
+Disallow: /my-orders
+Disallow: /room
+Disallow: /display
+
+Sitemap: https://orderlive.online/sitemap.xml
