@@ -18,6 +18,7 @@ import { DeployFooter } from './components/DeployFooter';
 import { offlineQueue } from './services/offlineQueue';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { stockService } from './services/stockService';
+import { trackPageView } from './services/analytics';
 
 // Customer pages — small, load eagerly (on critical render path)
 import { LoginPage } from './pages/LoginPage';
@@ -97,6 +98,16 @@ function DeployRibbon() {
 
 function PageLoader() {
   return <BrandLoader />;
+}
+
+function AnalyticsTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    trackPageView(`${location.pathname}${location.search}`);
+  }, [location.pathname, location.search]);
+
+  return null;
 }
 
 function OfflineSyncManager() {
@@ -202,6 +213,7 @@ function AdminHome() {
 export default function App() {
   return (
     <BrowserRouter>
+      <AnalyticsTracker />
       <AuthProvider>
         <SubscriptionConfigProvider>
         <CurrencyProvider>
