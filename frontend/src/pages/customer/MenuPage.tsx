@@ -167,7 +167,19 @@ export function MenuPage() {
               <h1 className="text-xl font-bold text-gray-900 truncate">{restaurantInfo?.name ?? 'Menu'}</h1>
             </div>
 
-            <CurrencySwitcher />
+            <div className="hidden items-center gap-2 md:flex">
+              <DesktopMenuToolbar
+                search={searchQuery}
+                onSearchChange={setSearchQuery}
+                favouritesActive={showFavourites}
+                onToggleFavourites={() => setShowFavourites((value) => !value)}
+                favouriteCount={favourites.size}
+              />
+              <CurrencySwitcher />
+            </div>
+            <div className="md:hidden">
+              <CurrencySwitcher />
+            </div>
 
             {/* Overflow menu — keeps the mobile header uncluttered */}
             <div className="relative shrink-0">
@@ -307,18 +319,11 @@ export function MenuPage() {
       )}
 
       <main className="max-w-5xl mx-auto px-4 pt-4 md:ml-52 md:mr-72 md:max-w-none">
-        <div className="mb-3 hidden items-end justify-between gap-3 md:flex">
+        <div className="mb-3 hidden md:block">
           <div>
             <h2 className="text-lg font-bold text-gray-900">{activeCategory === 'all' ? 'All Items' : categories.find((category) => category.id === activeCategory)?.name}</h2>
             <p className="text-xs text-gray-400">{filtered.length} items available</p>
           </div>
-          <DesktopMenuToolbar
-            search={searchQuery}
-            onSearchChange={setSearchQuery}
-            favouritesActive={showFavourites}
-            onToggleFavourites={() => setShowFavourites((value) => !value)}
-            favouriteCount={favourites.size}
-          />
         </div>
         {/* Combos & Deals strip — collapsible */}
         {combos.length > 0 && (

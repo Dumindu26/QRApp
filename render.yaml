@@ -6,8 +6,21 @@ services:
     buildCommand: cd frontend && npm ci && npm run build
     staticPublishPath: frontend/dist
     headers:
-      # index.html must never be cached — it references content-hashed assets
-      # and needs to update immediately after every deploy
+      # Every public SPA URL rewrites to index.html. Keep those entry responses
+      # uncached so they never reference chunks from a previous deployment.
+      - path: /
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+      - path: /signup
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+      - path: /takeaway/*
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+      - path: /delivery/*
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+      # Direct index.html requests need the same policy.
       - path: /index.html
         name: Cache-Control
         value: no-cache, no-store, must-revalidate

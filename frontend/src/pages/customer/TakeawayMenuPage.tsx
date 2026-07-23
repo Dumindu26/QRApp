@@ -420,6 +420,13 @@ export function TakeawayMenuPage() {
               <h1 className="text-xl font-bold text-gray-900">{restaurantInfo?.name ?? pageLabel}</h1>
             </div>
             <div className="flex items-center gap-2">
+              <DesktopMenuToolbar
+                search={searchQuery}
+                onSearchChange={setSearchQuery}
+                favouritesActive={showFavourites}
+                onToggleFavourites={() => setShowFavourites((value) => !value)}
+                favouriteCount={favourites.size}
+              />
               <CurrencySwitcher />
               <div className="flex items-center bg-gray-100 rounded-full p-0.5">
                 <button
@@ -477,18 +484,11 @@ export function TakeawayMenuPage() {
       <DesktopCategoryPanel categories={categories} items={items} active={activeCategory} onChange={setActiveCategory} />
 
       <main className="max-w-5xl mx-auto px-4 pt-4 md:ml-52 md:mr-72 md:max-w-none">
-        <div className="mb-3 hidden items-end justify-between gap-3 md:flex">
+        <div className="mb-3 hidden md:block">
           <div>
             <h2 className="text-lg font-bold text-gray-900">{activeCategory === 'all' ? 'All Items' : categories.find((category) => category.id === activeCategory)?.name}</h2>
             <p className="text-xs text-gray-400">{filtered.length} items available</p>
           </div>
-          <DesktopMenuToolbar
-            search={searchQuery}
-            onSearchChange={setSearchQuery}
-            favouritesActive={showFavourites}
-            onToggleFavourites={() => setShowFavourites((value) => !value)}
-            favouriteCount={favourites.size}
-          />
         </div>
         {/* Combos & Deals — collapsible */}
         {combos.length > 0 && (
