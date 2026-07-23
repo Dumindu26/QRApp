@@ -34,14 +34,14 @@ const NAV: NavItem[] = [
   { type: 'item', label: 'Menu',         icon: UtensilsCrossed, to: '/admin/menu',          perm: 'menu' },
   { type: 'item', label: 'Locations & QR', icon: QrCode,        to: '/admin/locations',     perm: 'locations' },
   { type: 'item', label: 'Floor',        icon: MapPin,          to: '/admin/floor',         perm: 'locations' },
-  { type: 'item', label: 'Kitchen',      icon: ChefHat,         to: '/kitchen' },
-  { type: 'item', label: 'Ready Display',icon: MonitorPlay,     to: '/admin/ready-display' },
+  { type: 'item', label: 'Kitchen',      icon: ChefHat,         to: '/kitchen',             featureKey: 'kitchenDisplay', perm: 'kitchenDisplay' },
+  { type: 'item', label: 'Ready Display',icon: MonitorPlay,     to: '/admin/ready-display', featureKey: 'readyDisplay', perm: 'readyDisplay' },
   { type: 'item', label: 'Promo Screens',icon: ImagePlus,       to: '/admin/promo-screens', featureKey: 'promoScreens', perm: 'promoScreens' },
-  { type: 'item', label: 'Bills & Payments', icon: Receipt,     to: '/admin/finance',       perm: 'bills' },
+  { type: 'item', label: 'Bills & Payments', icon: Receipt,     to: '/admin/finance',       featureKey: 'bills', perm: 'bills' },
   { type: 'item', label: 'Staff',        icon: Users,           to: '/admin/users',         adminOnly: true },
   { type: 'item', label: 'Stock',        icon: Warehouse,       to: '/admin/stock',         perm: 'stock' },
   { type: 'item', label: 'Loyalty',      icon: Star,            to: '/admin/loyalty',       adminOnly: true },
-  { type: 'item', label: 'Reports',      icon: BarChart2,       to: '/admin/reports',       perm: 'reports' },
+  { type: 'item', label: 'Reports',      icon: BarChart2,       to: '/admin/reports',       featureKey: 'reports', perm: 'reports' },
   { type: 'item', label: 'Subscription', icon: CreditCard,      to: '/admin/billing',       adminOnly: true },
   { type: 'item', label: 'Feedback',     icon: MessageSquarePlus, to: '/admin/feedback',    adminOnly: true },
   { type: 'item', label: 'Settings',     icon: Settings,        to: '/admin/settings',      adminOnly: true },
@@ -67,18 +67,22 @@ export function AdminSidebar() {
   );
 
   const isStaff = !!user && user.role !== 'admin' && user.role !== 'super_admin';
+  const canViewOrders = !isStaff || hasPermission('orders');
 
-  function isVisible(item: NavItem): boolean {
-    if (item.featureKey && features[item.featureKey] === false) return false;
-    if (item.to === '/admin/billing' && !subsEnabled) return false;
-    if (item.adminOnly) return !isStaff;
-    if (isStaff && item.perm) return hasPermission(item.perm);
-    return true;
+  function isDisabled(item: NavItem): boolean {
+    if (item.featureKey && features[item.featureKey] === false) return true;
+    if (item.to === '/admin/billing' && !subsEnabled) return true;
+    if (item.adminOnly && isStaff) return true;
+    return !!(isStaff && item.perm && !hasPermission(item.perm));
   }
 
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   useEffect(() => {
+    if (!canViewOrders) {
+      setActiveCount(0);
+      return;
+    }
     const fetch = () =>
       orderService.getOrders()
         .then((orders) => setActiveCount(orders.filter((o) => o.status !== 'cancelled').length))
@@ -86,7 +90,7 @@ export function AdminSidebar() {
     fetch();
     const id = setInterval(fetch, 10_000);
     return () => clearInterval(id);
-  }, []);
+  }, [canViewOrders]);
 
   useEffect(() => {
     if (isStaff) return;
@@ -111,21 +115,13 @@ export function AdminSidebar() {
     return (
       <>
         {NAV.map((item) => {
-          if (!isVisible(item)) return null;
+          const disabled = isDisabled(item);
           const active = isItemActive(item, location.pathname);
-          return (
-            <Link
-              key={item.label}
-              to={item.to}
-              title={item.label}
-              aria-label={item.label}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors relative ${
-                active ? 'bg-orange-50 text-orange-600' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <item.icon size={iconSize} className={active ? 'text-orange-600' : 'text-gray-400'} />
+          const content = (
+            <>
+              <item.icon size={iconSize} className={disabled ? 'text-gray-300' : active ? 'text-orange-600' : 'text-gray-400'} />
               {!collapsed && <span className="flex-1">{item.label}</span>}
-              {item.badge && activeCount > 0 && (
+              {!disabled && item.badge && activeCount > 0 && (
                 <span className={`font-bold bg-orange-500 text-white rounded-full text-center leading-none ${
                   collapsed
                     ? 'absolute -top-0.5 -right-0.5 text-[9px] min-w-[16px] px-1 py-0 leading-4'
@@ -134,7 +130,7 @@ export function AdminSidebar() {
                   {activeCount}
                 </span>
               )}
-              {item.to === '/admin/stock' && lowStockCount > 0 && (
+              {!disabled && item.to === '/admin/stock' && lowStockCount > 0 && (
                 <span className={`font-bold bg-amber-400 text-white rounded-full text-center leading-none ${
                   collapsed
                     ? 'absolute -top-0.5 -right-0.5 text-[9px] min-w-[16px] px-1 py-0 leading-4'
@@ -143,6 +139,38 @@ export function AdminSidebar() {
                   {lowStockCount}
                 </span>
               )}
+            </>
+          );
+          const className = `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors relative ${
+            disabled
+              ? 'text-gray-300 opacity-60 cursor-not-allowed select-none'
+              : active
+                ? 'bg-orange-50 text-orange-600'
+                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+          }`;
+
+          if (disabled) {
+            return (
+              <div
+                key={item.label}
+                title={`${item.label} — no permission`}
+                aria-label={`${item.label} — no permission`}
+                aria-disabled="true"
+                className={className}
+              >
+                {content}
+              </div>
+            );
+          }
+          return (
+            <Link
+              key={item.label}
+              to={item.to}
+              title={item.label}
+              aria-label={item.label}
+              className={className}
+            >
+              {content}
             </Link>
           );
         })}
@@ -167,7 +195,7 @@ export function AdminSidebar() {
           <p className="text-sm font-bold text-gray-900 leading-tight">Order Live</p>
           <p className="text-[10px] text-gray-400">orderlive.online</p>
         </div>
-        {activeCount > 0 && (
+        {canViewOrders && activeCount > 0 && (
           <Link to="/admin/orders">
             <span className="text-xs font-bold bg-orange-500 text-white rounded-full min-w-[22px] px-1.5 py-0.5 text-center leading-none block">
               {activeCount}
