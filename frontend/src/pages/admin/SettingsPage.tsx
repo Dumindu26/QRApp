@@ -1349,9 +1349,7 @@ export function SettingsPage() {
                   </Field>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-5 lg:border-l lg:border-gray-100 lg:pl-5">
               {/* Layout toggles */}
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Print options</p>
@@ -1375,12 +1373,14 @@ export function SettingsPage() {
                   ))}
                 </div>
               </div>
+            </div>
 
+            <div className="flex flex-col lg:border-l lg:border-gray-100 lg:pl-5">
               {/* Live mini receipt preview */}
-              <div>
+              <div className="flex flex-1 flex-col">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Live preview</p>
-                <div className="flex justify-center">
-                  <div className="font-mono text-[10px] bg-white border border-gray-300 rounded-lg p-4 w-[210px] leading-relaxed text-gray-800 shadow-sm select-none">
+                <div className="flex flex-1 justify-center">
+                  <div className="font-mono text-[10px] bg-white border border-gray-300 rounded-lg p-4 w-full max-w-[250px] min-h-[460px] leading-relaxed text-gray-800 shadow-sm select-none flex flex-col">
                   {restaurant?.logo && (
                     <div className="flex justify-center mb-1">
                       <img src={restaurant.logo} alt="logo" className="w-8 h-8 object-contain" />
@@ -1402,9 +1402,11 @@ export function SettingsPage() {
                   <p className="text-gray-400 my-0.5">{'─'.repeat(26)}</p>
                   <div className="flex justify-between text-[9px]"><span>Subtotal</span><span>$20.00</span></div>
                   <div className="flex justify-between font-bold text-[9px] mt-0.5"><span>TOTAL</span><span>$20.00</span></div>
-                  <p className="text-gray-400 my-0.5">{'─'.repeat(26)}</p>
-                  <p className="text-center text-[9px]">{receiptFooterLine1 || 'Thank you for dining with us!'}</p>
-                  {receiptFooterLine2 && <p className="text-center text-gray-400 text-[8px]">{receiptFooterLine2}</p>}
+                  <div className="mt-auto pt-3">
+                    <p className="text-gray-400 my-0.5">{'─'.repeat(26)}</p>
+                    <p className="text-center text-[9px]">{receiptFooterLine1 || 'Thank you for dining with us!'}</p>
+                    {receiptFooterLine2 && <p className="text-center text-gray-400 text-[8px]">{receiptFooterLine2}</p>}
+                  </div>
                   </div>
                 </div>
               </div>

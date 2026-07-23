@@ -1,4 +1,5 @@
-import { UtensilsCrossed, Clock, Sparkles, Leaf } from 'lucide-react';
+import { ArrowRight, Bell, Clock, Heart, Leaf, QrCode, UsersRound, UtensilsCrossed } from 'lucide-react';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 // Default hero — a warm, vibrant restaurant atmosphere shot from Unsplash
 export const DEFAULT_HERO =
@@ -143,6 +144,7 @@ export function WelcomeScreen({
   const rootClass = contained
     ? 'absolute inset-0 overflow-hidden bg-black'
     : 'min-h-screen relative overflow-hidden bg-black';
+  const compact = contained;
 
   return (
     <div className={rootClass}>
@@ -151,137 +153,135 @@ export function WelcomeScreen({
         src={heroUrl || DEFAULT_HERO}
         alt={title}
         className="absolute inset-0 w-full h-full object-cover"
-        style={{ filter: 'brightness(0.45) saturate(0.9)' }}
+        style={{ filter: 'brightness(0.38) saturate(0.82) contrast(1.05)' }}
       />
 
-      {/* Warm dark gradient overlay */}
+      {/* Cinematic dark overlay */}
       <div
         className="absolute inset-0"
-        style={{ background: 'linear-gradient(to bottom, rgba(10,8,5,0.45), rgba(10,8,5,0.55) 38%, rgba(8,6,4,0.82))' }}
+        style={{ background: 'linear-gradient(to bottom, rgba(5,4,3,0.28), rgba(6,5,3,0.42) 38%, rgba(3,5,3,0.88) 72%, rgba(2,4,3,0.98))' }}
       />
 
       {/* Foreground content */}
-      <div className={`relative z-10 flex flex-col items-center px-6 pt-14 pb-7 ${contained ? 'h-full' : 'min-h-screen'}`}>
+      <div className={`relative z-10 mx-auto flex w-full max-w-xl flex-col items-center ${compact ? 'h-full px-3 pt-3 pb-3 overflow-y-auto' : 'min-h-screen px-5 pt-7 pb-8 sm:px-8'}`}>
+        <div className="flex w-full justify-end">
+          <LanguageSwitcher variant="welcome" className={compact ? 'scale-75 origin-top-right' : ''} />
+        </div>
 
-        {/* Logo + title — vertically centered */}
-        <div className="flex-1 flex flex-col items-center justify-center w-full">
+        {/* Brand medallion and restaurant identity */}
+        <div className={`flex w-full flex-col items-center ${compact ? 'mt-5' : 'mt-[clamp(3.5rem,11vh,8rem)]'}`}>
           {logo ? (
-            <img
-              src={logo}
-              alt={title}
-              className="w-24 h-24 rounded-[1.6rem] object-cover shadow-2xl"
-              style={{ border: `2px solid ${GOLD_SOFT}` }}
-            />
+            <div className={`rounded-full p-1 shadow-2xl ${compact ? 'h-16 w-16' : 'h-24 w-24'}`} style={{ border: `2px solid ${GOLD}`, background: themeColor }}>
+              <img src={logo} alt={title} className="h-full w-full rounded-full object-cover" />
+            </div>
           ) : (
             <div
-              className="w-24 h-24 rounded-[1.6rem] flex items-center justify-center shadow-2xl"
-              style={{ backgroundColor: themeColor, border: `2px solid ${GOLD_SOFT}` }}
+              className={`rounded-full flex items-center justify-center shadow-2xl ${compact ? 'h-16 w-16' : 'h-24 w-24'}`}
+              style={{ background: `radial-gradient(circle at 35% 30%, color-mix(in srgb, ${themeColor} 78%, white 22%), ${themeColor})`, border: `2px solid ${GOLD}` }}
             >
-              <UtensilsCrossed size={40} className="text-white" />
+              <UtensilsCrossed size={compact ? 27 : 39} style={{ color: '#e6c276' }} />
             </div>
           )}
 
+          <div className={`flex items-center ${compact ? 'mt-4 gap-2' : 'mt-7 gap-4'}`}>
+            <span className={`${compact ? 'w-7' : 'w-12'} h-px`} style={{ background: GOLD }} />
+            <p className={`font-semibold uppercase ${compact ? 'text-[8px] tracking-[0.2em]' : 'text-sm tracking-[0.3em]'}`} style={{ color: '#e4bd6c' }}>Welcome to</p>
+            <span className={`${compact ? 'w-7' : 'w-12'} h-px`} style={{ background: GOLD }} />
+          </div>
+
           <h1
-            className="mt-7 text-center text-white px-2"
-            style={{ fontFamily: SERIF, fontWeight: 600, fontSize: 'clamp(2.1rem, 9vw, 2.9rem)', lineHeight: 1.05, textShadow: '0 2px 18px rgba(0,0,0,0.5)' }}
+            className={`text-center text-white px-2 ${compact ? 'mt-2 text-[24px]' : 'mt-3 text-[clamp(2.7rem,11vw,4.8rem)]'}`}
+            style={{ fontFamily: SERIF, fontWeight: 500, lineHeight: 1.02, textShadow: '0 3px 24px rgba(0,0,0,0.65)' }}
           >
             {title}
           </h1>
 
-          {/* Decorative divider */}
-          <div className="flex items-center gap-3 mt-5" aria-hidden="true">
-            <span className="block h-px w-16" style={{ background: `linear-gradient(to right, transparent, ${GOLD})` }} />
-            <span className="inline-block rotate-45" style={{ width: 7, height: 7, background: GOLD }} />
-            <span className="block h-px w-16" style={{ background: `linear-gradient(to left, transparent, ${GOLD})` }} />
+          <div className={`flex items-center ${compact ? 'mt-3 gap-2' : 'mt-6 gap-4'}`} aria-hidden="true">
+            <span className={`block h-px ${compact ? 'w-16' : 'w-24'}`} style={{ background: `linear-gradient(to right, transparent, ${GOLD})` }} />
+            <span className="inline-block rotate-45" style={{ width: compact ? 6 : 9, height: compact ? 6 : 9, background: '#e8c06d' }} />
+            <span className={`block h-px ${compact ? 'w-16' : 'w-24'}`} style={{ background: `linear-gradient(to left, transparent, ${GOLD})` }} />
           </div>
 
           {subtitle && (
-            <p className="mt-4 text-center text-xl tracking-wide" style={{ color: GOLD, fontFamily: SERIF }}>{subtitle}</p>
+            <p className={`text-center font-semibold uppercase ${compact ? 'mt-2 text-[10px] tracking-[0.12em]' : 'mt-5 text-lg tracking-[0.16em]'}`} style={{ color: '#e4bd6c' }}>{subtitle}</p>
           )}
         </div>
 
-        {/* Glass panel — bottom */}
+        {/* Ordering steps and CTA */}
         <div
-          className="w-full max-w-sm rounded-[1.75rem] px-6 pt-7 pb-6 flex flex-col items-center"
+          className={`w-full rounded-[2rem] flex flex-col items-center ${compact ? 'mt-5 px-3 pt-4 pb-3' : 'mt-[clamp(3rem,9vh,7rem)] px-5 sm:px-8 pt-8 pb-7'}`}
           style={{
-            background: 'rgba(18, 14, 10, 0.45)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: `1px solid ${GOLD_SOFT}`,
-            boxShadow: '0 12px 40px rgba(0,0,0,0.45)',
+            background: 'linear-gradient(145deg, rgba(13,35,24,0.88), rgba(4,15,10,0.91))',
+            backdropFilter: 'blur(18px)',
+            WebkitBackdropFilter: 'blur(18px)',
+            border: `1px solid rgba(201,162,92,0.75)`,
+            boxShadow: '0 18px 55px rgba(0,0,0,0.58)',
           }}
         >
-          {/* Medallion */}
-          <div
-            className="w-16 h-16 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: themeColor, border: `1px solid ${GOLD_SOFT}` }}
-          >
-            <UtensilsCrossed size={26} style={{ color: GOLD }} />
+          <div className="grid w-full grid-cols-3">
+            {[
+              { Icon: QrCode, title: 'SCAN', text: 'the QR code' },
+              { Icon: Bell, title: 'ORDER', text: 'your favorites' },
+              { Icon: Heart, title: 'ENJOY', text: 'your meal' },
+            ].map(({ Icon, title: stepTitle, text }, index) => (
+              <div key={stepTitle} className={`relative flex flex-col items-center text-center ${compact ? 'px-1' : 'px-2'}`}>
+                {index > 0 && <span className="absolute left-0 top-3 h-[70%] w-px bg-[#b98b45]/25" />}
+                <div className={`flex items-center justify-center rounded-full bg-black/35 ${compact ? 'h-10 w-10' : 'h-16 w-16'}`} style={{ border: `1px solid ${GOLD_SOFT}` }}>
+                  <Icon size={compact ? 18 : 27} style={{ color: '#ddb666' }} strokeWidth={1.7} />
+                </div>
+                <p className={`font-semibold text-white ${compact ? 'mt-2 text-[8px]' : 'mt-4 text-sm'}`}>{stepTitle}</p>
+                <p className={`text-white/75 ${compact ? 'text-[7px]' : 'mt-1 text-xs sm:text-sm'}`}>{text}</p>
+              </div>
+            ))}
           </div>
 
-          {/* Tagline */}
-          {tagline && (
-            <p className="mt-5 text-center text-base leading-relaxed" style={{ color: '#f3ead9' }}>{tagline}</p>
-          )}
+          {tagline && !compact && <p className="mt-6 text-center text-sm text-white/70">{tagline}</p>}
 
-          {/* Wait time badge */}
+          <button
+            onClick={onEnter}
+            className={`w-full rounded-2xl flex items-center justify-center gap-3 text-gray-950 active:scale-[0.98] transition-transform ${compact ? 'mt-4 py-2.5' : 'mt-7 py-4'}`}
+            style={{ background: 'linear-gradient(100deg, #c89c53, #f0cf89 52%, #c99b51)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45), 0 10px 30px rgba(0,0,0,0.3)' }}
+          >
+            <span style={{ fontFamily: SERIF, fontWeight: 700, fontSize: compact ? '1rem' : '1.65rem' }}>{ctaLabel}</span>
+            <ArrowRight size={compact ? 16 : 24} strokeWidth={1.8} />
+          </button>
+
           {waitTimeMin != null && waitTimeLabel && (
-            <div
-              className="mt-4 flex items-center gap-2 text-sm px-4 py-1.5 rounded-full"
-              style={{ color: '#f3ead9', border: `1px solid ${GOLD_SOFT}` }}
-            >
-              <Clock size={14} />
+            <div className={`flex items-center gap-2 rounded-full text-white/70 ${compact ? 'mt-3 text-[8px]' : 'mt-4 text-xs'}`}>
+              <Clock size={compact ? 10 : 13} style={{ color: GOLD }} />
               <span>{waitTimeLabel}</span>
             </div>
           )}
-
-          {/* CTA button */}
-          <button
-            onClick={onEnter}
-            className="mt-6 w-full py-4 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-transform"
-            style={{
-              background: `linear-gradient(180deg, color-mix(in srgb, ${themeColor} 92%, white 8%), color-mix(in srgb, ${themeColor} 78%, black 22%))`,
-              border: `1.5px solid ${GOLD}`,
-              boxShadow: `inset 0 1px 0 rgba(255,255,255,0.15), 0 10px 30px rgba(0,0,0,0.4)`,
-            }}
-          >
-            <Sparkles size={20} style={{ color: GOLD }} />
-            <span className="text-white" style={{ fontFamily: SERIF, fontWeight: 600, fontSize: '1.5rem' }}>{ctaLabel}</span>
-          </button>
-
-          {/* Social icons */}
-          {socialLinks.length > 0 && (
-            <>
-              <div className="mt-7 flex items-center gap-3 w-full justify-center">
-                <span className="h-px flex-1 max-w-[60px]" style={{ background: `linear-gradient(to right, transparent, ${GOLD_SOFT})` }} />
-                <p className="text-[11px] tracking-[0.25em]" style={{ color: GOLD }}>{followUsLabel.toUpperCase()}</p>
-                <span className="h-px flex-1 max-w-[60px]" style={{ background: `linear-gradient(to left, transparent, ${GOLD_SOFT})` }} />
-              </div>
-              <div className="mt-4 flex items-center justify-center gap-4 flex-wrap">
-                {socialLinks.map(({ key, label, Icon, url }) => (
-                  <a
-                    key={key}
-                    href={url!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={label}
-                    title={label}
-                    className="w-12 h-12 rounded-full flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
-                    style={{ background: 'rgba(18,14,10,0.6)', border: `1px solid ${GOLD_SOFT}`, color: '#f3ead9' }}
-                  >
-                    <Icon className="w-5 h-5" />
-                  </a>
-                ))}
-              </div>
-            </>
-          )}
         </div>
+
+        {!compact && (
+          <div className="mt-5 flex items-center gap-3 rounded-full border border-[#b98b45]/60 bg-black/25 px-5 py-3 text-sm backdrop-blur-md">
+            <UsersRound size={18} style={{ color: GOLD }} />
+            <span style={{ color: '#e7bd69' }}>Dine in a group?</span>
+            <span className="text-white/60">Order together</span>
+          </div>
+        )}
+
+        {socialLinks.length > 0 && (
+          <div className={`flex flex-col items-center ${compact ? 'mt-3' : 'mt-6'}`}>
+            {!compact && <p className="mb-3 text-[10px] uppercase tracking-[0.24em]" style={{ color: GOLD }}>{followUsLabel}</p>}
+            <div className={`flex flex-wrap items-center justify-center ${compact ? 'gap-2' : 'gap-3'}`}>
+              {socialLinks.map(({ key, label, Icon, url }) => (
+                <a key={key} href={url!} target="_blank" rel="noopener noreferrer" aria-label={label} title={label}
+                  className={`rounded-full flex items-center justify-center bg-black/35 transition-transform hover:scale-110 ${compact ? 'h-7 w-7' : 'h-10 w-10'}`}
+                  style={{ border: `1px solid ${GOLD_SOFT}`, color: '#e4bd6c' }}>
+                  <Icon className={compact ? 'h-3 w-3' : 'h-4 w-4'} />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Footer note */}
         {poweredByLabel && (
-          <div className="mt-6 flex flex-col items-center gap-1.5">
-            <Leaf size={14} style={{ color: GOLD_SOFT }} />
-            <p className="text-[11px] tracking-wide" style={{ color: 'rgba(201,162,92,0.6)' }}>{poweredByLabel}</p>
+          <div className={`${compact ? 'mt-3' : 'mt-8'} flex flex-col items-center gap-1.5`}>
+            <Leaf size={compact ? 10 : 15} style={{ color: GOLD }} />
+            <p className={`${compact ? 'text-[7px]' : 'text-xs'} tracking-wide`} style={{ color: 'rgba(222,177,93,0.8)' }}>{poweredByLabel}</p>
           </div>
         )}
       </div>

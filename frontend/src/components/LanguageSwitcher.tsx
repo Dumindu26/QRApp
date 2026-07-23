@@ -8,14 +8,37 @@ const LANGUAGES = [
 ];
 
 interface Props {
-  /** 'buttons' = pill button group (default), 'select' = compact dropdown */
-  variant?: 'buttons' | 'select';
+  /** 'buttons' = pill group, 'select' = compact dropdown, 'welcome' = premium dark dropdown */
+  variant?: 'buttons' | 'select' | 'welcome';
   className?: string;
 }
 
 export function LanguageSwitcher({ variant = 'buttons', className = '' }: Props) {
   const { i18n } = useTranslation();
   const current = i18n.language.split('-')[0]; // normalize 'en-US' → 'en'
+
+  if (variant === 'welcome') {
+    return (
+      <label className={`relative inline-flex items-center rounded-full border border-[#b98b45]/60 bg-black/25 text-white backdrop-blur-md ${className}`}>
+        <Globe size={18} className="pointer-events-none absolute left-4 text-[#dfb968]" />
+        <select
+          value={current}
+          onChange={(e) => i18n.changeLanguage(e.target.value)}
+          aria-label="Language"
+          className="appearance-none bg-transparent py-2.5 pl-11 pr-10 text-sm font-medium outline-none cursor-pointer"
+        >
+          {LANGUAGES.map((l) => (
+            <option key={l.code} value={l.code} className="bg-gray-950 text-white">
+              {l.full}
+            </option>
+          ))}
+        </select>
+        <svg className="pointer-events-none absolute right-4 h-4 w-4 text-white" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </label>
+    );
+  }
 
   if (variant === 'select') {
     return (
