@@ -18,6 +18,8 @@ import { orderService } from '../../services/orderService';
 import { promoCodeService, type ValidateResult } from '../../services/promoCodeService';
 import { comboService, type Combo } from '../../services/comboService';
 import { CategoryTabs } from '../../components/CategoryTabs';
+import { DesktopCategoryPanel } from '../../components/DesktopCategoryPanel';
+import { DesktopMenuToolbar } from '../../components/DesktopMenuToolbar';
 import { WelcomeScreen } from '../../components/WelcomeScreen';
 import { useCurrency } from '../../context/CurrencyContext';
 import { THEME_COLOR } from '../../context/ThemeContext';
@@ -89,12 +91,12 @@ function GridCard({ item, fmt, totalInCart, onOpen, onAdd, isFavourite, onToggle
   return (
     <div
       onClick={() => onOpen(item)}
-      className={`bg-white rounded-3xl shadow-md overflow-hidden flex flex-col cursor-pointer hover:shadow-lg transition-all duration-200 ${totalInCart > 0 ? 'ring-2 ring-orange-400' : ''}`}
+      className={`bg-white rounded-3xl md:rounded-2xl shadow-md md:shadow-sm md:border md:border-gray-200 overflow-hidden flex flex-col cursor-pointer hover:shadow-lg transition-all duration-200 ${totalInCart > 0 ? 'ring-2 ring-orange-400 md:ring-green-500' : ''}`}
     >
       <div className="relative flex-none">
         {item.image
-          ? <img src={item.image} alt={item.name} className="w-full h-48 object-cover" />
-          : <div className="w-full h-48 bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center"><UtensilsCrossed size={48} className="text-orange-200" /></div>}
+          ? <img src={item.image} alt={item.name} className="w-full h-48 md:h-28 object-cover" />
+          : <div className="w-full h-48 md:h-28 bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center"><UtensilsCrossed size={48} className="text-orange-200" /></div>}
         {(regDisc || lrgDisc) && (
           <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
             {regDisc ? item.discountPct : item.largeDiscountPct}% OFF
@@ -119,7 +121,7 @@ function GridCard({ item, fmt, totalInCart, onOpen, onAdd, isFavourite, onToggle
           )}
         </div>
       </div>
-      <div className="p-3.5 flex flex-col flex-1">
+      <div className="p-3.5 md:p-3 flex flex-col flex-1">
         <h3 className="font-bold text-gray-900 text-base leading-tight">{item.name}</h3>
         {(item.calories || item.proteinG != null || item.spiceLevel != null) && (
           <div className="flex flex-wrap gap-1 mt-2">
@@ -128,22 +130,24 @@ function GridCard({ item, fmt, totalInCart, onOpen, onAdd, isFavourite, onToggle
             {item.spiceLevel != null ? <span className="flex items-center gap-0.5 text-[11px] bg-red-50 text-red-700 px-2 py-0.5 rounded-full border border-red-100">🌶 {item.spiceLevel}/5</span> : null}
           </div>
         )}
-        <div className="mt-auto pt-3 flex items-center justify-between">
+        <div className="mt-auto pt-3 flex items-center justify-between md:block">
           <div>
             {regDisc && <span className="block text-xs text-gray-400 line-through leading-none">{fmt(item.price)}</span>}
-            <span className={`text-xl font-bold ${regDisc ? 'text-green-600' : 'text-orange-600'}`}>{fmt(regPrice)}</span>
+            <span className="text-xl md:text-sm font-bold text-green-700">{fmt(regPrice)}</span>
             {hasLarge && <span className="text-xs text-gray-400 ml-1">/ L {fmt(lrgPrice)}</span>}
           </div>
           <button
             onClick={(e) => { e.stopPropagation(); onAdd(item); }}
             disabled={!item.available}
-            className={`w-11 h-11 rounded-full flex items-center justify-center shadow-md transition-all active:scale-95 ${
+            className={`w-11 h-11 rounded-full md:mt-2 md:h-auto md:w-full md:rounded-xl md:py-2 flex items-center justify-center gap-1 shadow-md md:shadow-none transition-all active:scale-95 ${
               !item.available ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
-              : totalInCart > 0 ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
-              : 'bg-orange-500 text-white hover:bg-orange-600'
+              : totalInCart > 0 ? 'bg-green-100 text-green-700 hover:bg-green-200'
+              : 'bg-green-700 text-white hover:bg-green-800'
             }`}
           >
-            {totalInCart > 0 ? <span className="text-sm font-bold">{totalInCart}</span> : <Plus size={20} />}
+            {totalInCart > 0 ? <span className="text-sm font-bold md:hidden">{totalInCart}</span> : <Plus size={20} className="md:hidden" />}
+            <Plus size={16} className="hidden md:block" />
+            <span className="hidden text-sm font-semibold md:inline">{totalInCart > 0 ? `Add more (${totalInCart})` : 'Add'}</span>
           </button>
         </div>
         {!item.available && <p className="text-xs text-red-400 mt-1">Unavailable</p>}
@@ -243,6 +247,14 @@ export function TakeawayMenuPage() {
   const [placing, setPlacing]         = useState(false);
   const [detailModal, setDetailModal] = useState<MenuItem | null>(null);
   const [editingNotesKey, setEditingNotesKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 768px)');
+    const syncCart = () => setCartOpen(media.matches);
+    syncCart();
+    media.addEventListener('change', syncCart);
+    return () => media.removeEventListener('change', syncCart);
+  }, []);
   const [promoInput, setPromoInput]   = useState('');
   const [promoResult, setPromoResult] = useState<ValidateResult | null>(null);
   const [promoLoading, setPromoLoading] = useState(false);
@@ -432,10 +444,10 @@ export function TakeawayMenuPage() {
             )}
           </div>
         </div>
-        <div className="max-w-5xl mx-auto px-4 pb-3">
+        <div className="max-w-5xl mx-auto px-4 pb-3 md:hidden">
           <CategoryTabs categories={categories} active={activeCategory} onChange={setActiveCategory} />
         </div>
-        <div className="max-w-5xl mx-auto px-4 pb-3 flex gap-2 items-center">
+        <div className="max-w-5xl mx-auto px-4 pb-3 flex gap-2 items-center md:hidden">
           <div className="relative flex-1">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
@@ -462,8 +474,22 @@ export function TakeawayMenuPage() {
           </button>
         </div>
       </header>
+      <DesktopCategoryPanel categories={categories} items={items} active={activeCategory} onChange={setActiveCategory} />
 
-      <main className="max-w-5xl mx-auto px-4 pt-4">
+      <main className="max-w-5xl mx-auto px-4 pt-4 md:ml-52 md:mr-72 md:max-w-none">
+        <div className="mb-3 hidden items-end justify-between gap-3 md:flex">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">{activeCategory === 'all' ? 'All Items' : categories.find((category) => category.id === activeCategory)?.name}</h2>
+            <p className="text-xs text-gray-400">{filtered.length} items available</p>
+          </div>
+          <DesktopMenuToolbar
+            search={searchQuery}
+            onSearchChange={setSearchQuery}
+            favouritesActive={showFavourites}
+            onToggleFavourites={() => setShowFavourites((value) => !value)}
+            favouriteCount={favourites.size}
+          />
+        </div>
         {/* Combos & Deals — collapsible */}
         {combos.length > 0 && (
           <section className="mb-5">
@@ -539,7 +565,7 @@ export function TakeawayMenuPage() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map((item) => (
               <GridCard
                 key={item.id}
@@ -557,11 +583,10 @@ export function TakeawayMenuPage() {
       </main>
 
       {/* Floating cart panel */}
-      {itemCount > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-50">
-          <div className="max-w-5xl mx-auto px-4 pb-4">
+        <div className={`fixed bottom-0 left-0 right-0 z-50 md:left-auto md:top-[132px] md:w-72 md:border-l md:border-gray-100 md:bg-white md:z-30 ${itemCount === 0 ? 'hidden md:block' : ''}`}>
+          <div className="max-w-5xl mx-auto px-4 pb-4 md:flex md:h-full md:flex-col md:px-3 md:pt-3">
             {cartOpen && (
-              <div className="bg-white rounded-t-3xl shadow-2xl border border-gray-100 mb-0 max-h-[60vh] flex flex-col">
+              <div className="bg-white rounded-t-3xl shadow-2xl border border-gray-100 mb-0 max-h-[60vh] flex flex-col md:min-h-0 md:flex-1 md:rounded-2xl md:shadow-none">
                 <div className="px-4 pt-4 pb-2 border-b border-gray-100">
                   <p className="font-semibold text-gray-900 mb-2">{t('customer.yourCart')}</p>
                   <input
@@ -707,12 +732,12 @@ export function TakeawayMenuPage() {
             )}
             <button
               onClick={() => cartOpen ? placeOrder() : setCartOpen(true)}
-              disabled={placing}
+              disabled={placing || itemCount === 0}
               className="w-full bg-orange-500 text-white rounded-2xl px-5 py-4 flex items-center justify-between shadow-lg hover:bg-orange-600 transition-colors disabled:opacity-60"
             >
               <span className="bg-white/20 rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold">{itemCount}</span>
               <span className="font-semibold">
-                {placing ? t('customer.placingOrder') : cartOpen ? t('customer.placeOrder', { amount: fmt(total) }) : t('customer.yourCart')}
+                {placing ? t('customer.placingOrder') : itemCount === 0 ? t('customer.yourCart') : cartOpen ? t('customer.placeOrder', { amount: fmt(total) }) : t('customer.yourCart')}
               </span>
               {cartOpen
                 ? <ChevronDown size={20} onClick={(e) => { e.stopPropagation(); setCartOpen(false); }} />
@@ -720,7 +745,6 @@ export function TakeawayMenuPage() {
             </button>
           </div>
         </div>
-      )}
 
       {detailModal && (
         <ProductDetailModal

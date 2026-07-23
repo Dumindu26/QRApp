@@ -7,6 +7,8 @@ import { tableService } from '../../services/tableService';
 import { restaurantService } from '../../services/restaurantService';
 import { BrandLoader } from '../../components/BrandLoader';
 import { CategoryTabs } from '../../components/CategoryTabs';
+import { DesktopCategoryPanel } from '../../components/DesktopCategoryPanel';
+import { DesktopMenuToolbar } from '../../components/DesktopMenuToolbar';
 import { MenuCard } from '../../components/MenuCard';
 import { CartButton } from '../../components/CartButton';
 import { useCart } from '../../context/CartContext';
@@ -237,11 +239,11 @@ export function MenuPage() {
             )}
           </div>
         </div>
-        <div className="max-w-5xl mx-auto px-4 pb-3">
+        <div className="max-w-5xl mx-auto px-4 pb-3 md:hidden">
           <CategoryTabs categories={categories} active={activeCategory} onChange={setActiveCategory} />
         </div>
         {/* Search bar + Favourites toggle */}
-        <div className="max-w-5xl mx-auto px-4 pb-3 flex gap-2 items-center">
+        <div className="max-w-5xl mx-auto px-4 pb-3 flex gap-2 items-center md:hidden">
           <div className="relative flex-1">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
@@ -270,6 +272,7 @@ export function MenuPage() {
           </button>
         </div>
       </header>
+      <DesktopCategoryPanel categories={categories} items={items} active={activeCategory} onChange={setActiveCategory} />
 
       {/* ── Continue your order? banner ───────────────────────────────────── */}
       {pendingSavedCart && cartItems.length === 0 && (
@@ -303,7 +306,20 @@ export function MenuPage() {
         </div>
       )}
 
-      <main className="max-w-5xl mx-auto px-4 pt-4">
+      <main className="max-w-5xl mx-auto px-4 pt-4 md:ml-52 md:mr-72 md:max-w-none">
+        <div className="mb-3 hidden items-end justify-between gap-3 md:flex">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">{activeCategory === 'all' ? 'All Items' : categories.find((category) => category.id === activeCategory)?.name}</h2>
+            <p className="text-xs text-gray-400">{filtered.length} items available</p>
+          </div>
+          <DesktopMenuToolbar
+            search={searchQuery}
+            onSearchChange={setSearchQuery}
+            favouritesActive={showFavourites}
+            onToggleFavourites={() => setShowFavourites((value) => !value)}
+            favouriteCount={favourites.size}
+          />
+        </div>
         {/* Combos & Deals strip — collapsible */}
         {combos.length > 0 && (
           <section className="mb-5">
@@ -387,7 +403,7 @@ export function MenuPage() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map((item) => (
               <MenuCard key={item.id} item={item} view="grid"
                 categoryName={categories.find((c) => c.id === item.category)?.name}

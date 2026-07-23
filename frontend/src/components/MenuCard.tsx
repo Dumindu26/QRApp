@@ -141,16 +141,16 @@ export function MenuCard({ item, view = 'grid', categoryName, isFavourite = fals
     <>
       <div
         onClick={() => setShowDetail(true)}
-        className={`bg-white rounded-3xl shadow-md overflow-hidden flex flex-col cursor-pointer hover:shadow-lg transition-all duration-200 ${
+        className={`bg-white rounded-3xl md:rounded-2xl shadow-md md:shadow-sm md:border md:border-gray-200 overflow-hidden flex flex-col cursor-pointer hover:shadow-lg transition-all duration-200 ${
           !item.available ? 'opacity-60' : ''
         } ${inCart > 0 ? 'ring-2 ring-orange-400' : ''}`}
       >
         {/* Image */}
         <div className="relative flex-none">
           {item.image ? (
-            <img src={item.image} alt={item.name} loading="lazy" className="w-full h-48 object-cover" />
+            <img src={item.image} alt={item.name} loading="lazy" className="w-full h-48 md:h-28 object-cover" />
           ) : (
-            <div className={`w-full h-48 bg-gradient-to-br ${ph.bg} flex items-center justify-center`}>
+            <div className={`w-full h-48 md:h-28 bg-gradient-to-br ${ph.bg} flex items-center justify-center`}>
               <span className={`text-6xl font-black ${ph.text} select-none`}>{initial}</span>
             </div>
           )}
@@ -197,7 +197,7 @@ export function MenuCard({ item, view = 'grid', categoryName, isFavourite = fals
         </div>
 
         {/* Card body */}
-        <div className="p-3.5 flex flex-col flex-1">
+        <div className="p-3.5 md:p-3 flex flex-col flex-1">
           {/* Name */}
           <h3 className="font-bold text-gray-900 text-base leading-tight">{item.name}</h3>
 
@@ -223,12 +223,12 @@ export function MenuCard({ item, view = 'grid', categoryName, isFavourite = fals
           )}
 
           {/* Price + Add button */}
-          <div className="mt-auto pt-3 flex items-center justify-between">
+          <div className="mt-auto pt-3 flex items-center justify-between md:block">
             <div>
               {regDisc && (
                 <span className="block text-xs text-gray-400 line-through leading-none">{fmt(regBase)}</span>
               )}
-              <span className={`text-xl font-bold ${regDisc ? 'text-green-600' : 'text-orange-600'}`}>
+              <span className="text-xl md:text-sm font-bold text-green-700">
                 {fmt(regPrice)}
               </span>
               {hasLarge && (
@@ -239,15 +239,17 @@ export function MenuCard({ item, view = 'grid', categoryName, isFavourite = fals
             <button
               onClick={handleQuickAdd}
               disabled={!item.available}
-              className={`w-11 h-11 rounded-full flex items-center justify-center shadow-md transition-all active:scale-95 ${
+              className={`w-11 h-11 rounded-full md:mt-2 md:h-auto md:w-full md:rounded-xl md:py-2 flex items-center justify-center gap-1 shadow-md md:shadow-none transition-all active:scale-95 ${
                 !item.available ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
-                : inCart > 0 ? 'bg-orange-100 text-orange-600 hover:bg-orange-200 shadow-orange-100'
-                : 'bg-orange-500 text-white hover:bg-orange-600 shadow-orange-200'
+                : inCart > 0 ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                : 'bg-green-700 text-white hover:bg-green-800'
               }`}
             >
               {inCart > 0
-                ? <span className="text-sm font-bold">{inCart}</span>
-                : <Plus size={20} />}
+                ? <span className="text-sm font-bold md:hidden">{inCart}</span>
+                : <Plus size={20} className="md:hidden" />}
+              <Plus size={16} className="hidden md:block" />
+              <span className="hidden text-sm font-semibold md:inline">{inCart > 0 ? `Add more (${inCart})` : 'Add'}</span>
             </button>
           </div>
 

@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useConfirm } from '../../components/ConfirmModal';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Minus, Trash2, ShoppingBag, UtensilsCrossed, Check, Loader2, BedDouble, Truck, Tag, X, LayoutGrid, List, Search } from 'lucide-react';
+import { Plus, Minus, Trash2, ShoppingBag, UtensilsCrossed, Check, Loader2, BedDouble, Truck, Tag, X, LayoutGrid, List, Search, Heart } from 'lucide-react';
 import type { Category, MenuItem } from '../../types';
 import type { Table, Room } from '../../types';
 import type { SelectedTopping } from '../../types/Order';
@@ -19,6 +19,7 @@ import { ToppingSelectionModal } from '../../components/ToppingSelectionModal';
 import toast from 'react-hot-toast';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { AdminHeader } from '../../components/AdminHeader';
+import { useFavourites } from '../../hooks/useFavourites';
 
 type OrderMode = 'takeaway' | 'dine-in' | 'room-service' | 'delivery';
 type Size = 'regular' | 'large';
@@ -97,6 +98,7 @@ export function NewOrderPage() {
   );
   const [search, setSearch] = useState(() => localStorage.getItem('qra_neworder_search') ?? '');
   const [searchOpen, setSearchOpen] = useState(() => Boolean(localStorage.getItem('qra_neworder_search')));
+  const [showFavourites, setShowFavourites] = useState(false);
   const [orderDetailsWidth, setOrderDetailsWidth] = useState(() => {
     const saved = Number(localStorage.getItem('qra_neworder_order_details_width'));
     return Number.isFinite(saved)
@@ -106,6 +108,7 @@ export function NewOrderPage() {
   const [resizingOrderDetails, setResizingOrderDetails] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const resizeStartRef = useRef({ x: 0, width: DEFAULT_ORDER_DETAILS_WIDTH });
+  const { isFavourite, toggle: toggleFavourite, favourites } = useFavourites(user?.restaurantId ?? '');
 
   useEffect(() => {
     Promise.allSettled([
@@ -216,6 +219,7 @@ export function NewOrderPage() {
   const searchQ = search.trim().toLowerCase();
   const filtered = items
     .filter((i) => activeCategory === 'all' || i.category === activeCategory)
+    .filter((i) => !showFavourites || isFavourite(i.id))
     .filter((i) => !searchQ || i.name.toLowerCase().includes(searchQ) || (i.description ?? '').toLowerCase().includes(searchQ));
   const categoryCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -344,44 +348,6 @@ export function NewOrderPage() {
           </button>
         </div>
 
-        <div className={`relative shrink-0 transition-all duration-200 ${searchOpen ? 'w-64 lg:w-80' : 'w-9'}`}>
-          {searchOpen ? (
-            <>
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              <input
-                ref={searchRef}
-                id="new-order-search"
-                type="search"
-                value={search}
-                onChange={(e) => handleSearch(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape' && !search) setSearchOpen(false);
-                }}
-                placeholder="Search menu items..."
-                aria-label="Search menu items"
-                className="w-full pl-9 pr-9 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg outline-none focus:bg-white focus:ring-1 focus:ring-orange-300 transition-all placeholder:text-gray-400"
-              />
-              <button
-                onClick={() => search ? clearSearch() : setSearchOpen(false)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded bg-gray-400 hover:bg-gray-500 flex items-center justify-center transition-colors"
-                title={search ? 'Clear search' : 'Close search'}
-                aria-label={search ? 'Clear menu item search' : 'Close menu item search'}
-              >
-                <X size={11} className="text-white" />
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => setSearchOpen(true)}
-              className="w-9 h-9 rounded-lg border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 flex items-center justify-center transition-colors"
-              title="Search menu items"
-              aria-label="Search menu items"
-            >
-              <Search size={16} />
-            </button>
-          )}
-        </div>
-
         {/* Grid / List toggle */}
         <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg p-0.5 shrink-0">
           <button
@@ -449,10 +415,48 @@ export function NewOrderPage() {
           {!loading && (
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-base font-bold text-gray-900">{activeCategoryName}</h2>
+                <h2 className="text-lg font-bold text-gray-900">{showFavourites ? 'Favourites' : activeCategoryName}</h2>
                 <p className="text-xs text-gray-400">
                   {filtered.length} {filtered.length === 1 ? 'item' : 'items'} available
                 </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className={`relative transition-all duration-200 ${searchOpen ? 'w-56 xl:w-72' : 'w-10'}`}>
+                  {searchOpen ? (
+                    <>
+                      <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        ref={searchRef}
+                        id="new-order-search"
+                        type="search"
+                        value={search}
+                        onChange={(e) => handleSearch(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Escape' && !search) setSearchOpen(false); }}
+                        placeholder="Search menu..."
+                        aria-label="Search menu items"
+                        className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-9 text-sm outline-none focus:border-green-400 focus:ring-1 focus:ring-green-200"
+                      />
+                      <button onClick={() => search ? clearSearch() : setSearchOpen(false)} className="absolute right-2.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-gray-200 text-gray-500" aria-label={search ? 'Clear menu item search' : 'Close menu item search'}>
+                        <X size={11} />
+                      </button>
+                    </>
+                  ) : (
+                    <button onClick={() => setSearchOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:border-green-400 hover:text-green-700" title="Search menu">
+                      <Search size={17} />
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowFavourites((value) => !value)}
+                  className={`relative flex h-10 w-10 items-center justify-center rounded-xl border transition-colors ${
+                    showFavourites ? 'border-red-400 bg-red-50 text-red-500' : 'border-gray-200 bg-white text-gray-500 hover:border-red-300 hover:text-red-500'
+                  }`}
+                  title="Favourite items"
+                  aria-pressed={showFavourites}
+                >
+                  <Heart size={17} className={showFavourites ? 'fill-current' : ''} />
+                  {favourites.size > 0 && <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-red-500 px-1 text-[9px] font-bold leading-4 text-white">{favourites.size}</span>}
+                </button>
               </div>
             </div>
           )}
@@ -520,10 +524,13 @@ export function NewOrderPage() {
                     </div>
 
                     {/* Add button */}
+                    <button onClick={() => toggleFavourite(item.id)} className="shrink-0 text-gray-300 hover:text-red-500" title="Toggle favourite">
+                      <Heart size={16} className={isFavourite(item.id) ? 'fill-red-500 text-red-500' : ''} />
+                    </button>
                     <button
                       onClick={() => handleAddItem(item)}
                       className={`shrink-0 flex items-center justify-center gap-1 px-3 py-2 rounded-full text-sm font-medium transition-colors ${
-                        totalInCart > 0 ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' : 'bg-orange-500 text-white hover:bg-orange-600'
+                        totalInCart > 0 ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-green-700 text-white hover:bg-green-800'
                       }`}
                     >
                       {totalInCart > 0 ? <span className="font-bold text-sm w-5 text-center">{totalInCart}</span> : <Plus size={16} />}
@@ -555,10 +562,17 @@ export function NewOrderPage() {
                         ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                         : <div className="w-full h-full flex items-center justify-center text-3xl">🍽️</div>}
                       {(hasToppings || hasLarge) && (
-                        <span className="absolute top-1 right-1 bg-orange-500 text-white text-xs font-semibold px-1.5 py-0.5 rounded-full">
+                        <span className="absolute bottom-1 right-1 bg-green-700 text-white text-xs font-semibold px-1.5 py-0.5 rounded-full">
                           {hasToppings ? '+ Extras' : 'R / L'}
                         </span>
                       )}
+                      <button
+                        onClick={(event) => { event.stopPropagation(); toggleFavourite(item.id); }}
+                        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-gray-400 shadow-sm hover:text-red-500"
+                        title="Toggle favourite"
+                      >
+                        <Heart size={14} className={isFavourite(item.id) ? 'fill-red-500 text-red-500' : ''} />
+                      </button>
                       {totalInCart > 0 && (
                         <span className="absolute top-1 left-1 bg-orange-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
                           {totalInCart}
@@ -569,15 +583,15 @@ export function NewOrderPage() {
                     {regDisc
                       ? <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 mb-1">
                           <span className="text-xs text-gray-400 line-through">{fmt(item.price)}</span>
-                          <span className="text-green-600 text-sm font-semibold">{fmt(regPrice)}</span>
+                          <span className="text-green-700 text-sm font-semibold">{fmt(regPrice)}</span>
                           <span className="text-xs bg-red-100 text-red-600 font-bold px-1.5 py-0.5 rounded-full">{item.discountPct}% OFF</span>
                         </div>
-                      : <p className="text-orange-600 text-sm font-medium mb-1">{fmt(regPrice)}{hasLarge ? ` / L ${fmt(lrgPrice)}` : ''}</p>}
+                      : <p className="text-green-700 text-sm font-medium mb-1">{fmt(regPrice)}{hasLarge ? ` / L ${fmt(lrgPrice)}` : ''}</p>}
                     <div className="mt-auto">
                       <button
                         onClick={() => handleAddItem(item)}
-                        className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-xl text-sm font-medium transition-colors ${
-                          totalInCart > 0 ? 'bg-orange-100 text-orange-600' : 'bg-orange-500 text-white hover:bg-orange-600'
+                        className={`w-full flex items-center justify-center gap-1 py-2 rounded-xl text-sm font-medium transition-colors ${
+                          totalInCart > 0 ? 'bg-green-100 text-green-700' : 'bg-green-700 text-white hover:bg-green-800'
                         }`}
                       >
                         <Plus size={14} /> {totalInCart > 0 ? 'Add more' : 'Add'}
