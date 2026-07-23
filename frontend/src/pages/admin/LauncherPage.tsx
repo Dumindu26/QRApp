@@ -172,8 +172,8 @@ export function LauncherPage() {
             <>
               {/* Sub-group view */}
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
-                {activeGroup.children.map((child) => (
-                  <Tile key={child.to} {...child} disabled={isDisabled(child)} />
+                {activeGroup.children.filter((child) => !isDisabled(child)).map((child) => (
+                  <Tile key={child.to} {...child} />
                 ))}
               </div>
             </>
@@ -182,16 +182,21 @@ export function LauncherPage() {
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
               {TOP_NAV.map((entry) =>
                 entry.type === 'item' ? (
-                  <Tile key={entry.to} label={entry.label} icon={entry.icon} color={entry.color} to={entry.to} disabled={isDisabled(entry)} />
+                  isDisabled(entry)
+                    ? null
+                    : <Tile key={entry.to} label={entry.label} icon={entry.icon} color={entry.color} to={entry.to} />
                 ) : (
-                  <Tile
-                    key={entry.label}
-                    label={entry.label}
-                    icon={entry.icon}
-                    color={entry.color}
-                    onClick={() => setActiveGroup(entry)}
-                    disabled={entry.children.every(isDisabled)}
-                  />
+                  entry.children.every(isDisabled)
+                    ? null
+                    : (
+                      <Tile
+                        key={entry.label}
+                        label={entry.label}
+                        icon={entry.icon}
+                        color={entry.color}
+                        onClick={() => setActiveGroup(entry)}
+                      />
+                    )
                 )
               )}
             </div>
